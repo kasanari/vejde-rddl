@@ -5,8 +5,7 @@ import numpy as np
 from pyRDDLGym.core.compiler.model import RDDLLiftedModel  # type: ignore
 from pyRDDLGym.core.compiler.model import RDDLPlanningModel  # type: ignore
 
-from regawa.model import GroundValue
-from regawa.model.base_grounded_model import BaseGroundedModel
+from regawa import GroundValue, BaseGroundedModel
 
 from .rddl_utils import get_groundings, rddl_ground_to_tuple
 

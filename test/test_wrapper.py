@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from gymnasium.utils.env_checker import check_env
 
-from regawa.rddl import register_env, register_pomdp_env
+from vejde_rddl import register_env, register_pomdp_env
 from regawa.wrappers.add_actions_wrapper import AddActionWrapper
 from regawa.wrappers.labelwrapper import LabelingWrapper
 from regawa.wrappers.last_obs_wrapper import LastObsWrapper

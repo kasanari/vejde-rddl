@@ -14,7 +14,7 @@ import regawa.wrappers.gym_utils as model_utils
 from regawa.gnn import ActionMode, AgentConfig, GraphAgent
 from regawa.gnn.agent_utils import GNNParams
 from regawa.gnn.gnn_agent import heterostatedata_to_tensors
-from regawa.rddl import register_env
+from vejde_rddl import register_env
 from regawa.rl.util import evaluate, rollout, save_eval_data, update, update_vf_agent
 from regawa import agent_from_env
 
@@ -166,5 +166,5 @@ def iteration(i, env, agent, optimizer, vf_agent, vf_optimizer, seed: int):
 
 if __name__ == "__main__":
     t = time.time()
-    test_imitation(ActionMode.ACTION_THEN_NODE, 17, 16)
+    test_imitation(ActionMode.ACTION_THEN_NODE, 30, 16)
     print("Time: ", time.time() - t)

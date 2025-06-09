@@ -13,7 +13,7 @@ import regawa.wrappers.gym_utils as model_utils
 from regawa.gnn import ActionMode, AgentConfig, RecurrentGraphAgent
 from regawa.gnn.agent_utils import GNNParams
 from regawa.gnn.gnn_agent import heterostatedata_to_tensors
-from regawa.rddl import register_pomdp_env as register_env
+from vejde_rddl import register_pomdp_env as register_env
 from regawa.rl.util import evaluate, rollout, save_eval_data, update
 
 

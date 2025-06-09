@@ -33,7 +33,7 @@ def test_rnn_agent():
 def test_agent():
     from test_imitation_mdp import evaluate, save_eval_data
 
-    from regawa.rddl import register_env
+    from vejde_rddl import register_env
 
     logfile = open("test_trained_agent.log", "w")
 

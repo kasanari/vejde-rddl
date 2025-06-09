@@ -9,17 +9,21 @@ from pyRDDLGym.core.parser.parser import RDDLParser
 from pyRDDLGym.core.parser.reader import RDDLReader
 from rddlrepository import RDDLRepoManager
 
+from .rddl_default_invalid_action_wrapper import (
+    RDDLDefaultInvalidActions,
+)
 from regawa import GroundedGraphWrapper, StackingGroundedGraphWrapper
-from regawa.model.base_model import BaseModel
-from regawa.rddl.rddl_default_invalid_action_wrapper import RDDLDefaultInvalidActions
-from regawa.wrappers import AddConstantsWrapper, IndexActionWrapper, StackingWrapper
-from regawa.wrappers.remove_false_wrapper import RemoveFalseWrapper
-from regawa.wrappers.remove_none_wrapper import RemoveNoneWrapper
+from regawa.wrappers import (
+    AddConstantsWrapper,
+    IndexActionWrapper,
+    StackingWrapper,
+    RemoveFalseWrapper,
+    RemoveNoneWrapper,
+)
 
 from .rddl_convert_enums_wrapper import RDDLConvertEnums
 from .rddl_grounded_model import RDDLGroundedModel
 from .rddl_model import RDDLModel
-from .rddl_pomdp_model import RDDLPOMDPGroundedModel
 from .rddl_to_tuple_wrapper import RDDLToTuple
 
 
@@ -225,7 +229,7 @@ def register_env():
     env_id = "RDDLGraphEnv-v0"
     gymnasium.register(
         id=env_id,
-        entry_point="regawa.rddl:RDDLGraphEnv",
+        entry_point="vejde_rddl:RDDLGraphEnv",
     )
     return env_id
 
@@ -234,7 +238,7 @@ def register_shuffle_env():
     env_id = "RDDLCycleInstancesEnv-v0"
     gymnasium.register(
         id=env_id,
-        entry_point="regawa.rddl:RDDLCycleInstancesEnv",
+        entry_point="vejde_rddl:RDDLCycleInstancesEnv",
     )
     return env_id
 
@@ -243,6 +247,6 @@ def register_pomdp_env():
     env_id = "RDDLPOMDPGraphEnv-v0"
     gymnasium.register(
         id=env_id,
-        entry_point="regawa.rddl:RDDLStackingGraphEnv",
+        entry_point="vejde_rddl:RDDLStackingGraphEnv",
     )
     return env_id

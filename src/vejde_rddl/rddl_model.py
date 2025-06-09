@@ -4,7 +4,7 @@ from itertools import chain
 
 from pyRDDLGym.core.compiler.model import RDDLLiftedModel  # type: ignore
 
-from regawa.model.base_model import BaseModel
+from regawa import BaseModel
 
 
 class RDDLModel(BaseModel):

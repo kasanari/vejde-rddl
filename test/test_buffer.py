@@ -2,7 +2,7 @@ import gymnasium as gym
 import numpy as np
 from gymnasium.spaces import Dict, MultiDiscrete
 
-from regawa.rddl import register_env
+from vejde_rddl import register_env
 from regawa.rl.graph_buffer import ReplayBuffer
 
 

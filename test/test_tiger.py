@@ -1,4 +1,4 @@
-from regawa.rddl import register_env
+from vejde_rddl import register_env
 import gymnasium as gym
 import pytest
 

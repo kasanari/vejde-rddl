@@ -25,8 +25,8 @@ from regawa.inference import fn_graph_to_obsdata, fn_groundobs_to_graph
 from regawa.model.base_grounded_model import BaseGroundedModel
 from regawa.model.base_model import BaseModel
 from regawa.model.utils import max_arity
-from regawa.rddl import register_env, register_pomdp_env
-from regawa.rddl.rddl_utils import rddl_ground_to_tuple
+from vejde_rddl import register_env, register_pomdp_env
+from vejde_rddl.rddl_utils import rddl_ground_to_tuple
 from regawa.rl.util import calc_loss, evaluate, save_eval_data, update
 from regawa.wrappers.graph_utils import fn_obsdict_to_graph
 from regawa.wrappers.grounding_utils import fn_objects_with_type

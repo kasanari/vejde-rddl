@@ -2,7 +2,7 @@ import cProfile
 from regawa.rl.ppo_gnn import setup, Args
 from regawa import GNNParams, ActionMode
 from torch import nn
-from regawa.rddl import register_env, register_shuffle_env
+from vejde_rddl import register_env, register_shuffle_env
 
 env_id = register_shuffle_env()
 
