@@ -17,7 +17,7 @@ cu124 = ["regawa[cu124]"]
 
 
 [tool.uv.sources]
-regawa = { git = "git+ssh://git@gitr.sys.kth.se/jaknyb/RDDLGraphWrapper", branch = "main" }
+regawa = { git = "git+ssh://git@gitr.sys.kth.se/jaknyb/RDDLGraphWrapper", branch = "cleanup" }
 
 
 [dependency-groups]
