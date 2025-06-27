@@ -12,8 +12,8 @@ requires-python = ">=3.11"
 dependencies = ["gymnasium>=1.1.1", "pyrddlgym>=2.2", "rddlrepository>=2.0"]
 
 [project.optional-dependencies]
-cpu = ["regawa[cpu]"]
-cu124 = ["regawa[cu124]"]
+cpu = ["regawa[cpu, rl]"]
+cu124 = ["regawa[cu124, rl]"]
 
 
 [tool.uv.sources]
