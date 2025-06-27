@@ -1,4 +1,4 @@
-from regawa.rl.ppo_gnn import setup, Args
+from regawa.rl import train, Args
 from regawa import GNNParams, ActionMode
 from torch import nn
 from vejde_rddl import register_env
@@ -10,7 +10,6 @@ args = Args(
     num_steps=20,
     domain="rddl/conditional_bandit/domain.rddl",
     instance="rddl/conditional_bandit/instance_1.rddl",
-    # eval_instance="rddl/conditional_bandit/instance_2.rddl",
     weight_decay=0.0,
     remove_false=True,
     debug=True,
@@ -22,4 +21,4 @@ args = Args(
         action_mode=ActionMode.ACTION_THEN_NODE,
     ),
 )
-setup(args)
+train(args)

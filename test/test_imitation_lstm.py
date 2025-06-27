@@ -160,7 +160,7 @@ def test_imitation_rnn(action_mode: ActionMode, iterations: int, embedding_dim: 
     rewards, _, _ = zip(*data)
     logger.info("Sum Reward Before Training: %s", np.mean([np.sum(r) for r in rewards]))
 
-    num_seeds = 10
+    # num_seeds = 10
 
     data = [iteration(i, env, agent, optimizer, 0) for i in range(iterations)]
     losses, norms, per_param_grad = zip(*data)

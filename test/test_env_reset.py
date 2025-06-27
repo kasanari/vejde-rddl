@@ -1,22 +1,7 @@
-from collections.abc import Callable
-import logging
-import random
-import time
-
 import gymnasium as gym
-import matplotlib.pyplot as plt
 import numpy as np
-import pytest
-import torch as th
-import torch.optim as optim
 
-import regawa.wrappers.gym_utils as model_utils
-from regawa.gnn import ActionMode, AgentConfig, GraphAgent
-from regawa.gnn.agent_utils import GNNParams
-from regawa.gnn.gnn_agent import heterostatedata_to_tensors
 from vejde_rddl import register_env
-from regawa.rl.util import evaluate, rollout, save_eval_data, update, update_vf_agent
-from regawa import agent_from_env
 
 
 def test_env_reset():
@@ -24,9 +9,11 @@ def test_env_reset():
     instance = 1
     remove_false = True
     env_id = register_env()
-    env_func = lambda: gym.make(
-        env_id, domain=domain, instance=instance, remove_false=remove_false
-    )
+
+    def env_func():
+        return gym.make(
+            env_id, domain=domain, instance=instance, remove_false=remove_false
+        )
 
     env = gym.vector.SyncVectorEnv([env_func] * 2)
 
@@ -84,7 +71,6 @@ def test_env_reset():
 
 def example():
     import gymnasium as gym
-    import numpy as np
     from collections import deque
 
     # Initialize environment, buffer and episode_start
@@ -93,9 +79,11 @@ def example():
     instance = 1
     remove_false = True
     env_id = register_env()
-    env_func = lambda: gym.make(
-        env_id, domain=domain, instance=instance, remove_false=remove_false
-    )
+
+    def env_func():
+        return gym.make(
+            env_id, domain=domain, instance=instance, remove_false=remove_false
+        )
 
     episode_length = 40
     num_steps = 78

@@ -22,7 +22,7 @@ from regawa.gnn.gnn_agent import (
 )
 from regawa.model.base_grounded_model import BaseGroundedModel
 from regawa.model.base_model import BaseModel
-from vejde_rddl import register_env
+from vejde_rddl import register_env, register_pomdp_env
 from vejde_rddl.rddl_utils import rddl_ground_to_tuple
 from regawa.rl.util import calc_loss, evaluate, update
 from regawa.wrappers.graph_utils import create_graphs, create_obs_dict
@@ -218,10 +218,10 @@ def get_agent(model: BaseModel):
     return agent
 
 
-def get_rddl_data(data: Recording, model: BaseModel, grounded_model: BaseGroundedModel):
-    data = [convert_episode(d) for d in data]
-    rollout = [to_obsdata(s, model, grounded_model) for e in data for s in e]
-    return zip(*rollout)
+# def get_rddl_data(data: Recording, model: BaseModel, grounded_model: BaseGroundedModel):
+#     data = [convert_episode(d) for d in data]
+#     rollout = [to_obsdata(s, model, grounded_model) for e in data for s in e]
+#     return zip(*rollout)
 
 
 def test_expert(
@@ -285,7 +285,7 @@ def test_saved_data():
     instance = 1
     use_rnn = False
     seed = 1
-    env_id = register_stacking_env() if use_rnn else register_env()
+    env_id = register_pomdp_env() if use_rnn else register_env()
     env: gym.Env = gym.make(env_id, domain=domain, instance=instance)
     model: BaseModel = env.unwrapped.model
     grounded_model: BaseGroundedModel = env.unwrapped.grounded_model

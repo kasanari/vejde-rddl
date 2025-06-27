@@ -13,26 +13,25 @@ import torch as th
 from tqdm import tqdm
 
 from regawa import GNNParams, GroundValue
-from regawa.gnn import ActionMode
-from regawa.gnn.data import heterostatedata_from_obslist
-from regawa.gnn.gnn_agent import (
+from regawa.policy import ActionMode
+from regawa.gnn import heterostatedata_from_obslist
+from regawa.gnn import (
     AgentConfig,
     GraphAgent,
     RecurrentGraphAgent,
     heterostatedata_to_tensors,
 )
-from regawa.inference import fn_graph_to_obsdata, fn_groundobs_to_graph
-from regawa.model.base_grounded_model import BaseGroundedModel
-from regawa.model.base_model import BaseModel
-from regawa.model.utils import max_arity
+from regawa.inference import fn_graph_to_obsdata
+from regawa.model import BaseModel
+from regawa.model import max_arity
 from vejde_rddl import register_env, register_pomdp_env
 from vejde_rddl.rddl_utils import rddl_ground_to_tuple
-from regawa.rl.util import calc_loss, evaluate, save_eval_data, update
-from regawa.wrappers.graph_utils import fn_obsdict_to_graph
-from regawa.wrappers.grounding_utils import fn_objects_with_type
-from regawa.wrappers.remove_false_wrapper import remove_false
-from regawa.wrappers.render_utils import create_render_graph
-from regawa.wrappers.utils import from_dict_action, object_list
+from regawa.rl import calc_loss, evaluate, save_eval_data, update
+from regawa.wrappers import fn_obsdict_to_graph
+from regawa.wrappers import fn_objects_with_type
+from regawa.wrappers import remove_false
+from regawa.wrappers import create_render_graph
+from regawa.wrappers import from_dict_action, object_list
 
 RecordingObs = dict[str, Any]
 RecordingAction = dict[str, int]
@@ -237,10 +236,10 @@ def get_agent(model: BaseModel, device: str = "cpu"):
     return agent
 
 
-def get_rddl_data(data: Recording, model: BaseModel, grounded_model: BaseGroundedModel):
-    data = [convert_episode(d) for d in data]
-    rollout = [to_obsdata(s, model, grounded_model) for e in data for s in e]
-    return zip(*rollout)
+# def get_rddl_data(data: Recording, model: BaseModel, grounded_model: BaseGroundedModel):
+#     data = [convert_episode(d) for d in data]
+#     rollout = [to_obsdata(s, model, grounded_model) for e in data for s in e]
+#     return zip(*rollout)
 
 
 def test_expert(
@@ -339,13 +338,17 @@ def test_saved_data(domain: str, data_path: str):
     expert_actions = [x["actions"] for x in expert_data]
     expert_obs = [x["state"] for x in expert_data]
 
-    to_tuple = lambda x: tuple(x.split("__"))
-    wrapper_func = lambda x: remove_false(
-        convert_state_to_tuples(
-            x,
-            to_tuple,
+    def to_tuple(x: str) -> tuple[str, ...]:
+        return tuple(x.split("__"))
+
+    def wrapper_func(x: RecordingObs) -> GroundObs:
+        return remove_false(
+            convert_state_to_tuples(
+                x,
+                to_tuple,
+            )
         )
-    )
+
     expert_actions = [convert_actions_to_tuples(e, to_tuple) for e in expert_actions]
     expert_actions = [
         {ensure_tuple(k): v} for e in expert_actions for k, v in e.items()
@@ -410,8 +413,6 @@ if __name__ == "__main__":
     # domains = "Navigation_MDP_ippc2011 TriangleTireworld_MDP_ippc2014 Elevators_MDP_ippc2014 SysAdmin_MDP_ippc2011 Traffic_MDP_ippc2014 SkillTeaching_MDP_ippc2014 AcademicAdvising_MDP_ippc2014 CrossingTraffic_MDP_ippc2014 Tamarisk_MDP_ippc2014"
     # domains = domains.split()
     domains = ["Elevators_MDP_ippc2014"]
-
-    import sys
 
     # data_path = sys.argv[1]
     # domains = ["SysAdmin_MDP_ippc2011"]

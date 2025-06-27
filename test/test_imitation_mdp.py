@@ -10,13 +10,12 @@ import pytest
 import torch as th
 import torch.optim as optim
 
-import regawa.wrappers.gym_utils as model_utils
-from regawa.gnn import ActionMode, AgentConfig, GraphAgent
-from regawa.gnn.agent_utils import GNNParams
-from regawa.gnn.gnn_agent import heterostatedata_to_tensors
-from vejde_rddl import register_env
+from regawa.policy import ActionMode
+from regawa import GNNParams
+from regawa.data import heterostatedata_to_tensors
 from regawa.rl.util import evaluate, rollout, save_eval_data, update, update_vf_agent
 from regawa import agent_from_env
+from vejde_rddl import register_env
 
 
 def policy(
@@ -73,10 +72,10 @@ def test_imitation(
     np.random.seed(0)
     random.seed(0)
 
-    l = logging.getLogger("regawa")
-    l.setLevel(logging.INFO)
+    log = logging.getLogger("regawa")
+    log.setLevel(logging.INFO)
     logfile = logging.FileHandler("test_imitation_mdp.log", mode="w")
-    l.addHandler(logfile)
+    log.addHandler(logfile)
 
     render_logger = logging.getLogger("message_pass_render")
     render_logfile = logging.FileHandler("test_imitation_mdp_render.log", mode="w")

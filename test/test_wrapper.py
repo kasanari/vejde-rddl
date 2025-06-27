@@ -222,13 +222,13 @@ def test_rddl_domains(env_id):
             print(f"Error in {domain}: {e}")
             assert False, f"Error checking in {domain}: {e}"
 
-        policy = lambda _: env.action_space.sample()
-
         time = 0
         sum_reward = 0
 
         while not done:
-            obs, sum_reward, time, done = step(env, obs, sum_reward, time, done, policy)
+            obs, sum_reward, time, done = step(
+                env, obs, sum_reward, time, done, lambda _: env.action_space.sample()
+            )
 
 
 def test_wrapper():
@@ -253,9 +253,10 @@ def test_wrapper():
     done = False
     time = 0
     sum_reward = 0
-    policy = lambda _: env.action_space.sample()
     while not done:
-        obs, sum_reward, time, done = step(env, obs, sum_reward, time, done, policy)
+        obs, sum_reward, time, done = step(
+            env, obs, sum_reward, time, done, lambda _: env.action_space.sample()
+        )
 
     return sum_reward
 

@@ -6,8 +6,7 @@ import gymnasium as gym
 from gymnasium import spaces
 from pyRDDLGym import RDDLEnv
 
-from regawa.model import GroundValue
-from regawa.wrappers.grounding_utils import predicate
+from regawa import GroundValue
 
 from .rddl_model import RDDLModel
 
@@ -15,6 +14,11 @@ ObsType = TypeVar("ObsType")
 ActType = TypeVar("ActType")
 WrapperObsType = spaces.Dict
 WrapperActType = spaces.Tuple
+
+
+@cache
+def predicate(key: GroundValue) -> str:
+    return key[0]
 
 
 @cache
