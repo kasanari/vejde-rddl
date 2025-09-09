@@ -11,8 +11,8 @@ from regawa.wrappers.render_utils import render_lifted
 def model():
     import pyRDDLGym
 
-    domain = "rddl/conditional_bandit.rddl"
-    instance = "rddl/conditional_bandit_i0.rddl"
+    domain = "rddl/conditional_bandit/domain.rddl"
+    instance = "rddl/conditional_bandit/instance_1.rddl"
     env = pyRDDLGym.make(domain, instance, enforce_action_constraints=True)  # type: ignore
     return RDDLModel(env.model)
 
@@ -21,8 +21,8 @@ def model():
 def ground_model():
     import pyRDDLGym
 
-    domain = "rddl/conditional_bandit.rddl"
-    instance = "rddl/conditional_bandit_i0.rddl"
+    domain = "rddl/conditional_bandit/domain.rddl"
+    instance = "rddl/conditional_bandit/instance_1.rddl"
     env = pyRDDLGym.make(domain, instance, enforce_action_constraints=True)  # type: ignore
     return RDDLGroundedModel(env.model)
 
@@ -187,3 +187,6 @@ def test_render_lifted(model: BaseModel):
     with open("test_lifted.dot", "w") as f:
         f.write(graph)
     assert graph is not None
+
+if __name__ == "__main__":
+    test_action_fluents(model())
