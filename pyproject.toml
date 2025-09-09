@@ -17,8 +17,7 @@ cu128 = ["regawa[cu128, rl]"]
 
 
 [tool.uv.sources]
-regawa = { git = "git+ssh://git@gitr.sys.kth.se/jaknyb/RDDLGraphWrapper"}
-pyrddlgym = { git = "https://github.com/pyrddlgym-project/pyRDDLGym"}
+regawa = { git = "git+ssh://git@https://github.com/kasanari/vejde", branch = "public" }
 
 
 [dependency-groups]
