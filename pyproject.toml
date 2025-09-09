@@ -17,7 +17,7 @@ cu128 = ["regawa[cu128, rl]"]
 
 
 [tool.uv.sources]
-regawa = { git = "git+ssh://git@https://github.com/kasanari/vejde", branch = "public" }
+regawa = { git = "https://github.com/kasanari/vejde.git", branch = "public" }
 
 
 [dependency-groups]
