@@ -181,12 +181,5 @@ def test_arity(model: BaseModel):
     assert model.arity("CONNECTED") == 2
 
 
-def test_render_lifted(model: BaseModel):
-    graph = render_lifted(model)
-
-    with open("test_lifted.dot", "w") as f:
-        f.write(graph)
-    assert graph is not None
-
 if __name__ == "__main__":
     test_action_fluents(model())

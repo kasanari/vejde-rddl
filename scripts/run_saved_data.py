@@ -1,6 +1,5 @@
 import json
 import pathlib
-from pathlib import Path
 import random
 from collections import deque
 from collections.abc import Callable
@@ -12,64 +11,50 @@ import numpy as np
 import torch as th
 from tqdm import tqdm
 
-from regawa import GNNParams, GroundValue
-from regawa.policy import ActionMode
-from regawa.gnn import heterostatedata_from_obslist
-from regawa.gnn import (
-    AgentConfig,
-    GraphAgent,
-    RecurrentGraphAgent,
-    heterostatedata_to_tensors,
-)
-from regawa.inference import fn_graph_to_obsdata
-from regawa.model import BaseModel
-from regawa.model import max_arity
+from regawa import GNNParams, Grounding
+from regawa.policy import AgentConfig, GraphAgent, RecurrentGraphAgent
+from regawa.model.base_grounded_model import BaseGroundedModel
+from regawa.model.base_model import BaseModel
 from vejde_rddl import register_env, register_pomdp_env
 from vejde_rddl.rddl_utils import rddl_ground_to_tuple
-from regawa.rl import calc_loss, evaluate, save_eval_data, update
-from regawa.wrappers import fn_obsdict_to_graph
-from regawa.wrappers import fn_objects_with_type
-from regawa.wrappers import remove_false
-from regawa.wrappers import create_render_graph
-from regawa.wrappers import from_dict_action, object_list
+from regawa.rl.util import calc_loss, evaluate, update
+from regawa.wrappers.render_utils import create_render_graph, to_graphviz
+from regawa.wrappers.utils import from_dict_action, object_list
 
 RecordingObs = dict[str, Any]
 RecordingAction = dict[str, int]
 RecordingEntry = dict[RecordingObs, RecordingAction]
 Recording = list[RecordingEntry]
 
-GroundAction = dict[GroundValue, bool]
-GroundObs = dict[GroundValue, Any]
+GroundAction = dict[Grounding, bool]
+GroundObs = dict[Grounding, Any]
 
 IndexedAction = tuple[int, ...]
 
 
-@th.inference_mode()
 def save_sorted_losses(
     model: BaseModel,
     agent: GraphAgent,
     expert_actions: list[GroundAction],
     indexed_expert_obs: list[GroundObs],
     expert_obs: list[GroundObs],
-    device: str = "cpu",
 ):
     loss_per_obs = []
-    objects_with_type = fn_objects_with_type(model.fluent_param)
     for i, (expert_a, d, o) in enumerate(
-        zip(expert_actions, indexed_expert_obs, expert_obs)
+        zip(expert_actions[0], indexed_expert_obs, expert_obs[0])
     ):
-        s = heterostatedata_to_tensors(heterostatedata_from_obslist([d]), device=device)
+        s = heterostatedata_to_tensors(heterostatedata_from_obslist([d]))
         g = to_graph(o, model)
         actions, logprob, _, _, p_a, p_n__a = agent.sample(s, deterministic=True)
         l2_norms = [th.sum(th.square(w)) for w in agent.parameters()]
         loss = calc_loss(l2_norms, logprob).item()
 
-        objs = object_list(list(o.keys()), objects_with_type)
+        objs = object_list(o.keys(), model.fluent_param)
         objs = [o.name for o in objs]
 
         model_a = from_index_action(actions[0], lambda x: objs[x], model)
 
-        factor_weights = p_n__a.T[actions[:, 0]].detach().squeeze().cpu().numpy()
+        factor_weights = p_n__a.T[actions[:, 0]].detach().squeeze().numpy()
 
         weight_by_factor = {
             k: f"{float(v):0.3f}"
@@ -81,7 +66,7 @@ def save_sorted_losses(
             k: f"{float(v):0.3f}"
             for k, v in zip(
                 model.action_fluents,
-                p_a.detach().squeeze().cpu().numpy(),
+                p_a.detach().squeeze().numpy(),
             )
             if v > 0.001
         }
@@ -94,33 +79,25 @@ def save_sorted_losses(
                 action_probs=weight_by_action,
                 object_probs=weight_by_factor,
                 step=i,
-                # obs=o,
             )
         )
 
     sorted_loss = sorted(loss_per_obs, key=lambda x: x["loss"], reverse=True)
 
-    return sorted_loss
+    with open("sorted_loss.json", "w") as f:
+        json.dump(sorted_loss, f, indent=2)
 
 
-def ground_to_tuple(s: str) -> GroundValue:
+def ground_to_tuple(s: str) -> Grounding:
     return rddl_ground_to_tuple(s)
 
 
-def convert_state_to_tuples(
-    d: RecordingObs, converter_func: Callable[[str], GroundValue]
-) -> dict[GroundValue, Any]:
-    return {converter_func(k): v for k, v in d.items()}
+def convert_state_to_tuples(d: RecordingObs) -> dict[Grounding, Any]:
+    return {ground_to_tuple(k): v for k, v in d.items() if v}
 
 
-def convert_actions_to_tuples(
-    d: RecordingAction, converter_func: Callable[[str], GroundValue]
-) -> dict[GroundValue, bool]:
-    return convert_state_to_tuples(d, converter_func) if d else {("None", "None"): True}
-
-
-def ensure_tuple(x: tuple[str, ...]) -> tuple[str, ...]:
-    return x + ("None",) if len(x) == 1 else x
+def convert_actions_to_tuples(d: RecordingAction) -> dict[Grounding, bool]:
+    return convert_state_to_tuples(d) if d else {("None", "None"): True}
 
 
 def from_index_action(
@@ -149,8 +126,7 @@ def get_obs(data: Recording):
 
 
 def to_graph(obs: GroundObs, model: BaseModel):
-    create_graph = fn_obsdict_to_graph(model)
-    g, _ = create_graph(obs)
+    g, _ = create_graphs(obs, model)
     return create_render_graph(g.boolean, g.numeric)
 
 
@@ -158,24 +134,25 @@ def to_obsdata(
     obs: GroundObs,
     action: GroundAction,
     model: BaseModel,
+    grounded_model: BaseGroundedModel,
 ):
-    create_graphs = fn_obsdict_to_graph(model)
-    g_to_obsdata = fn_graph_to_obsdata(model)
+    obs |= {
+        g: grounded_model.constant_value(g) for g in grounded_model.constant_groundings
+    }
+
     g, _ = create_graphs(
         obs,
+        model,
     )
-    o = g_to_obsdata(g)
+    dot = to_graphviz(create_render_graph(g.boolean, g.numeric))
+    global render_index
+    render_path = pathlib.Path("saved_render")
+    render_path.mkdir(exist_ok=True)
+    with open(render_path / f"graph_{render_index}.dot", "w") as f:
+        f.write(dot)
+    render_index += 1
+    o = heterodict_to_obsdata(create_obs_dict(g, model))
     a = to_indexed_action(action, lambda x: g.boolean.factors.index(x), model)
-
-    # Rendering
-    # dot = to_graphviz(create_render_graph(g.boolean, g.numeric))
-    # global render_index
-    # render_path = pathlib.Path("saved_render")
-    # render_path.mkdir(exist_ok=True)
-    # with open(render_path / f"graph_{render_index}.dot", "w") as f:
-    #     f.write(dot)
-    # render_index += 1
-
     return o, a
 
 
@@ -206,32 +183,29 @@ def get_rnn_agent(model: BaseModel):
     return agent
 
 
-def get_agent(model: BaseModel, device: str = "cpu"):
+def get_agent(model: BaseModel):
     n_types = model.num_types
     n_relations = model.num_fluents
     n_actions = model.num_actions
-    arity = max_arity(model)
 
     params = GNNParams(
         layers=4,
         embedding_dim=16,
-        activation=th.nn.Tanh(),
-        aggregation="max",
-        action_mode=ActionMode.NODE_THEN_ACTION,
+        activation=th.nn.Mish(),
+        aggregation="sum",
+        action_mode=ActionMode.ACTION_THEN_NODE,
     )
 
     config = AgentConfig(
         n_types,
         n_relations,
         n_actions,
-        hyper_params=params,
-        arity=arity,
-        remove_false_fluents=True,
+        params,
     )
 
-    agent = GraphAgent(config, None)
-
-    agent = agent.to(device)
+    agent = GraphAgent(
+        config,
+    )
 
     return agent
 
@@ -294,83 +268,65 @@ def test_expert(
     return rewards
 
 
-def test_saved_data(domain: str, data_path: str):
-    datafile = Path(f"{data_path}/{domain}/combined_data.json").expanduser()
+def test_saved_data():
+    # datafile = "/storage/GitHub/pyRDDLGym-prost/prost/out/sysadmin1/data_sysadmin_mdp_sysadmin_inst_mdp__2.json"
+    # domain = "SysAdmin_MDP_ippc2011"
+    # instance = 2
+    datafile = "/storage/GitHub/pyRDDLGym-prost/prost/out/OUTPUTS/data_academic-advising_mdp_academic-advising_inst_mdp__01.json"
+    domain = "AcademicAdvising_ippc2018"
     instance = 1
     use_rnn = False
     seed = 1
-    device = "cuda:0" if th.cuda.is_available() else "cpu"
-    num_gradient_steps = 500
     env_id = register_pomdp_env() if use_rnn else register_env()
-
-    output_dir = pathlib.Path("imitation_output")
-    output_dir.mkdir(exist_ok=True)
-    domain_dir = output_dir / domain
-    domain_dir.mkdir(exist_ok=True)
-
-    env: gym.Env = gym.make(env_id, domain=domain, instance=instance, remove_false=True)
+    env: gym.Env = gym.make(env_id, domain=domain, instance=instance)
     model: BaseModel = env.unwrapped.model
-
+    grounded_model: BaseGroundedModel = env.unwrapped.grounded_model
     np.random.seed(seed)
     th.manual_seed(seed)
     random.seed(seed)
 
-    agent = get_rnn_agent(model) if use_rnn else get_agent(model, device)
-
-    # agent, _ = GraphAgent.load_agent(
-    #     "imitation_output/Elevators_MDP_ippc2014/model.pth"
-    # )
-
+    agent = get_rnn_agent(model) if use_rnn else get_agent(model)
     optimizer = th.optim.AdamW(
-        agent.parameters(), lr=0.001, amsgrad=True, weight_decay=0.0
+        agent.parameters(), lr=0.01, amsgrad=True, weight_decay=0.01
     )
 
     with open(datafile, "r") as f:
-        expert_data = json.load(f)
+        data = json.load(f)
 
-    data = [
-        evaluate(env, agent, i, deterministic=True, device=device) for i in range(10)
-    ]
-    rewards, *_ = zip(*data)
+    expert_rewards = test_expert(env, data, seed, model, strict=False)
+    print(
+        f"Expert Total reward: {sum(expert_rewards)}, Mean reward: {sum(expert_rewards) / len(expert_rewards)}"
+    )
+    rewards, *_ = evaluate(env, agent, seed, deterministic=True)
+    print(f"Learner Total reward: {sum(rewards)}")
 
-    print(f"Learner average return: {np.mean([sum(r) for r in rewards])}")
-
-    expert_actions = [x["actions"] for x in expert_data]
-    expert_obs = [x["state"] for x in expert_data]
-
-    def to_tuple(x: str) -> tuple[str, ...]:
-        return tuple(x.split("__"))
-
-    def wrapper_func(x: RecordingObs) -> GroundObs:
-        return remove_false(
-            convert_state_to_tuples(
-                x,
-                to_tuple,
-            )
-        )
-
-    expert_actions = [convert_actions_to_tuples(e, to_tuple) for e in expert_actions]
-    expert_actions = [
-        {ensure_tuple(k): v} for e in expert_actions for k, v in e.items()
-    ]
-    expert_obs = [wrapper_func(e) for e in expert_obs]
+    expert_actions = get_actions(data)
+    expert_obs = get_obs(data)
+    expert_actions = [list(map(convert_actions_to_tuples, e)) for e in expert_actions]
+    expert_obs = [list(map(convert_state_to_tuples, e)) for e in expert_obs]
 
     indexed_expert_obs, indexed_expert_action = zip(
-        *[to_obsdata(o, a, model) for o, a in zip(expert_obs, expert_actions)]
+        *[
+            to_obsdata(o, a, model, grounded_model)
+            for e_o, e_a in zip(expert_obs, expert_actions)
+            for o, a in zip(e_o, e_a)
+        ]
     )
 
-    d = heterostatedata_to_tensors(
-        heterostatedata_from_obslist(indexed_expert_obs), device=device
-    )
-    indexed_expert_action = th.as_tensor(
-        indexed_expert_action, dtype=th.int64, device=device
-    )
+    # batch_inds = list(range(0, len(expert_obs)))
+
+    d = heterostatedata_to_tensors(heterostatedata_from_obslist(indexed_expert_obs))
     avg_loss = 0.0
+    num_gradient_steps = 500
     avg_grad_norm = 0.0
     pbar = tqdm()
     grad_norms = deque()
     losses = deque()
     for _ in range(num_gradient_steps):
+        # shuffle(batch_inds)
+        # o = [expert_obs[i] for i in batch_inds]
+        # a = [expert_action[i] for i in batch_inds]
+        # for x, y in zip(o, a):
         loss, grad_norm, _ = update(
             agent, optimizer, indexed_expert_action, d, max_grad_norm=0.5
         )
@@ -383,41 +339,23 @@ def test_saved_data(domain: str, data_path: str):
 
     pbar.close()
 
-    data = [
-        evaluate(env, agent, i, deterministic=True, device=device) for i in range(10)
-    ]
-    rewards, *_ = zip(*data)
-    save_eval_data(data, domain_dir / "eval_data.json")
+    rewards, *_ = evaluate(env, agent, seed, deterministic=False)
 
-    print(f"Learner average return: {np.mean([sum(r) for r in rewards])}")
+    print(f"Learner Total reward: {sum(rewards)}")
 
     fig, axs = plt.subplots(2)
     axs[0].plot(list(losses))
     axs[1].plot(list(grad_norms))
     axs[0].set_title("Loss")
     axs[1].set_title("Grad Norm")
-    fig.savefig(domain_dir / "loss_grad.png")
+    fig.savefig("test_saved_data.png")
 
-    agent.save_agent(str(domain_dir / "model.pth"))
+    agent.save_agent("saved_data.pth")
 
-    sorted_losses = save_sorted_losses(
-        model, agent, expert_actions, indexed_expert_obs, expert_obs, device=device
-    )
-    with open(domain_dir / "sorted_loss.json", "w") as f:
-        json.dump(sorted_losses, f, indent=2)
+    save_sorted_losses(model, agent, expert_actions, indexed_expert_obs, expert_obs)
 
     pass
 
 
 if __name__ == "__main__":
-    # domains = "Navigation_MDP_ippc2011 TriangleTireworld_MDP_ippc2014 Elevators_MDP_ippc2014 SysAdmin_MDP_ippc2011 Traffic_MDP_ippc2014 SkillTeaching_MDP_ippc2014 AcademicAdvising_MDP_ippc2014 CrossingTraffic_MDP_ippc2014 Tamarisk_MDP_ippc2014"
-    # domains = domains.split()
-    domains = ["Elevators_MDP_ippc2014"]
-
-    # data_path = sys.argv[1]
-    # domains = ["SysAdmin_MDP_ippc2011"]
-    # domains = ["Tamarisk_MDP_ippc2014"]
-    for domain in domains:
-        print(f"Testing {domain}")
-        data_path = Path("/storage/GitHub/pyRDDLGym-rl/prost/").expanduser()
-        test_saved_data(domain, data_path)
+    test_saved_data()

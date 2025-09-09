@@ -6,7 +6,7 @@ import gymnasium as gym
 from gymnasium import spaces
 from pyRDDLGym import RDDLEnv
 
-from regawa import GroundValue
+from regawa import Grounding
 
 from .rddl_model import RDDLModel
 
@@ -17,7 +17,7 @@ WrapperActType = spaces.Tuple
 
 
 @cache
-def predicate(key: GroundValue) -> str:
+def predicate(key: Grounding) -> str:
     return key[0]
 
 
@@ -47,7 +47,7 @@ class RDDLConvertEnums(gym.Wrapper[WrapperActType, WrapperObsType, ObsType, ActT
         obs = {k: v for k, v in obs.items() if predicate(k) not in self.enum_fluents}
         return obs
 
-    def convert_action(self, action: GroundValue) -> dict[str, str]:
+    def convert_action(self, action: Grounding) -> dict[str, str]:
         action_with_enum, *args = action
 
         action, *enum_value_index = action_with_enum.split("^^^")

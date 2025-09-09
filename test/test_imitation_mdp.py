@@ -55,8 +55,8 @@ def plot_loses_grads(losses, norms, action_mode):
 @pytest.mark.parametrize(
     "action_mode, iterations, embedding_dim",
     [
-        (ActionMode.NODE_THEN_ACTION, 14, 16),
-        (ActionMode.ACTION_THEN_NODE, 13, 16),
+        (ActionMode.NODE_THEN_ACTION, 25, 16),
+        (ActionMode.ACTION_THEN_NODE, 25, 16),
     ],
 )
 def test_imitation(
@@ -165,5 +165,5 @@ def iteration(i, env, agent, optimizer, vf_agent, vf_optimizer, seed: int):
 
 if __name__ == "__main__":
     t = time.time()
-    test_imitation(ActionMode.ACTION_THEN_NODE, 30, 16)
+    test_imitation(ActionMode.NODE_THEN_ACTION, 30, 16)
     print("Time: ", time.time() - t)

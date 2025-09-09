@@ -5,7 +5,7 @@ import numpy as np
 from pyRDDLGym.core.compiler.model import RDDLLiftedModel  # type: ignore
 from pyRDDLGym.core.compiler.model import RDDLPlanningModel  # type: ignore
 
-from regawa import GroundValue, BaseGroundedModel
+from regawa import Grounding, BaseGroundedModel, GroundObs
 
 from .rddl_utils import get_groundings, rddl_ground_to_tuple
 
@@ -22,7 +22,7 @@ class RDDLGroundedModel(BaseGroundedModel):
         self.remove_false = remove_false
 
     @cached_property
-    def groundings(self) -> tuple[GroundValue, ...]:
+    def groundings(self) -> tuple[Grounding, ...]:
         model = self.model
 
         state_fluents = model.state_fluents  # type: ignore
@@ -38,11 +38,11 @@ class RDDLGroundedModel(BaseGroundedModel):
         return tuple(sorted(all_groundings))
 
     @cached_property
-    def action_groundings(self) -> tuple[GroundValue, ...]:
+    def action_groundings(self) -> tuple[Grounding, ...]:
         return get_groundings(self.model, self.model.action_fluents) | {"None"}  # type: ignore
 
     @cached_property
-    def constant_groundings(self) -> tuple[GroundValue, ...]:
+    def constant_groundings(self) -> tuple[Grounding, ...]:
         return (
             tuple(self._all_non_fluent_vals.keys())
             if self.all_non_fluents
@@ -50,7 +50,7 @@ class RDDLGroundedModel(BaseGroundedModel):
         )
 
     @cache
-    def constant_value(self, constant_grounding: GroundValue) -> Any:
+    def constant_value(self, constant_grounding: Grounding) -> Any:
         return (
             self._all_non_fluent_vals[constant_grounding]
             if self.all_non_fluents
@@ -67,7 +67,7 @@ class RDDLGroundedModel(BaseGroundedModel):
         )
 
     @cached_property
-    def _all_non_fluent_vals(self) -> dict[GroundValue, Any]:
+    def _all_non_fluent_vals(self) -> GroundObs:
         """All non-fluents, including those that are not observed in the instance file."""
         return (
             {
@@ -87,7 +87,7 @@ class RDDLGroundedModel(BaseGroundedModel):
         )
 
     @cached_property
-    def _non_fluent_vals(self) -> dict[GroundValue, Any]:
+    def _non_fluent_vals(self) -> GroundObs:
         return {
             rddl_ground_to_tuple(RDDLPlanningModel.ground_var(name, params)): value
             for (name, params), value in self._non_fluents

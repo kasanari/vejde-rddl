@@ -1,6 +1,6 @@
 from functools import cached_property
 
-from regawa.model import GroundValue
+from regawa.model import Grounding
 
 from .rddl_grounded_model import RDDLGroundedModel
 from .rddl_utils import get_groundings, rddl_ground_to_tuple
@@ -8,7 +8,7 @@ from .rddl_utils import get_groundings, rddl_ground_to_tuple
 
 class RDDLPOMDPGroundedModel(RDDLGroundedModel):
     @cached_property
-    def groundings(self) -> tuple[GroundValue, ...]:
+    def groundings(self) -> tuple[Grounding, ...]:
         model = self.model
 
         observ_fluents = model.observ_fluents  # type: ignore

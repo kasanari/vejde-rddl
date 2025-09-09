@@ -7,10 +7,7 @@ import pytest
 from gymnasium.utils.env_checker import check_env
 
 from vejde_rddl import register_env, register_pomdp_env
-from regawa.wrappers.add_actions_wrapper import AddActionWrapper
-from regawa.wrappers.labelwrapper import LabelingWrapper
-from regawa.wrappers.last_obs_wrapper import LastObsWrapper
-from regawa.wrappers.stacking_last_obs_wrapper import LastObsStackingWrapper
+from regawa.wrappers import AddActionWrapper, LabelingWrapper, LastObsStackingWrapper
 
 env_id = register_env()
 pomdp_env_id = register_pomdp_env()
