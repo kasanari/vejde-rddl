@@ -19,6 +19,7 @@ from regawa.wrappers import (
     StackingWrapper,
     RemoveFalseWrapper,
     RemoveNoneWrapper,
+    IndexObsWrapper,
 )
 
 from .rddl_convert_enums_wrapper import RDDLConvertEnums
@@ -67,6 +68,7 @@ def make_env(
         else StackingGroundedGraphWrapper(env, model=model)
     )
     env = IndexActionWrapper(env, model)
+    env = IndexObsWrapper(env, model)
     return env, grounded_rddl_model, model
 
 
