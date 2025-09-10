@@ -42,7 +42,7 @@ def test_inference():
 
     agent_output = fn_get_agent_output(agent, lifted_model, remove_false, action_mode)
 
-    action, weight_by_object, weight_by_action, graph = agent_output(test_obs)
+    output = agent_output(test_obs)
 
     pass
 

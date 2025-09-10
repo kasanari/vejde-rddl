@@ -1864,7 +1864,7 @@ wheels = [
 [[package]]
 name = "regawa"
 version = "0.1.0"
-source = { git = "ssh://git@gitr.sys.kth.se/jaknyb/RDDLGraphWrapper?branch=cleanup#b3eb3df336cd7e5179f5c0f2db870fee2d6ebec1" }
+source = { git = "ssh://git@gitr.sys.kth.se/jaknyb/RDDLGraphWrapper#b3eb3df336cd7e5179f5c0f2db870fee2d6ebec1" }
 dependencies = [
     { name = "gnn-policy" },
     { name = "gymnasium" },
@@ -2473,8 +2473,8 @@ requires-dist = [
     { name = "gymnasium", specifier = ">=1.1.1" },
     { name = "pyrddlgym", specifier = ">=2.2" },
     { name = "rddlrepository", specifier = ">=2.0" },
-    { name = "regawa", extras = ["cpu", "rl"], marker = "extra == 'cpu'", git = "ssh://git@gitr.sys.kth.se/jaknyb/RDDLGraphWrapper?branch=cleanup" },
-    { name = "regawa", extras = ["cu124", "rl"], marker = "extra == 'cu124'", git = "ssh://git@gitr.sys.kth.se/jaknyb/RDDLGraphWrapper?branch=cleanup" },
+    { name = "regawa", extras = ["cpu", "rl"], marker = "extra == 'cpu'", git = "ssh://git@gitr.sys.kth.se/jaknyb/RDDLGraphWrapper" },
+    { name = "regawa", extras = ["cu124", "rl"], marker = "extra == 'cu124'", git = "ssh://git@gitr.sys.kth.se/jaknyb/RDDLGraphWrapper" },
 ]
 provides-extras = ["cpu", "cu124"]
 
