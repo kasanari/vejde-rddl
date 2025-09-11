@@ -3,6 +3,7 @@ from regawa import GNNParams, ActionMode
 from torch import nn
 from vejde_rddl import register_env
 
+
 def main():
     num_steps = 23
     num_envs = 2

@@ -4,7 +4,6 @@ import regawa.model.utils as utils
 from regawa import BaseModel
 from vejde_rddl import RDDLModel
 from vejde_rddl.rddl_grounded_model import RDDLGroundedModel
-from regawa.wrappers.render_utils import render_lifted
 
 
 @pytest.fixture()

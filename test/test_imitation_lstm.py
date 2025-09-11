@@ -1,3 +1,4 @@
+from collections.abc import Callable
 import json
 import logging
 import random
@@ -10,9 +11,8 @@ import torch as th
 from gymnasium.spaces import Dict, MultiDiscrete
 
 import regawa.wrappers.gym_utils as model_utils
-from regawa.gnn import ActionMode, AgentConfig, RecurrentGraphAgent
-from regawa.gnn.agent_utils import GNNParams
-from regawa.gnn.gnn_agent import heterostatedata_to_tensors
+from regawa.policy import ActionMode, AgentConfig, RecurrentGraphAgent, GNNParams
+from regawa.data import heterostatedata_to_tensors
 from vejde_rddl import register_pomdp_env as register_env
 from regawa.rl.util import evaluate, rollout, save_eval_data, update
 
@@ -70,22 +70,24 @@ def knowledge_graph_policy(obs):
     return [1, button]
 
 
-def policy(state: dict[str, bool]) -> tuple[int, int]:
+def policy(
+    state: dict[str, bool], object_to_idx: Callable[[str], int]
+) -> tuple[int, int]:
     if (
         state["enough_light___r_m"]
         and state["light___r_m"]
         and not state["empty___r_m"]
     ):
-        return (1, 4)
+        return (1, object_to_idx("red"))
 
     if (
         state["enough_light___g_m"]
         and state["light___g_m"]
         and not state["empty___g_m"]
     ):
-        return (1, 2)
+        return (1, object_to_idx("green"))
 
-    return (0, 0)
+    return (0, object_to_idx("None"))
 
 
 def counting_policy(state):
@@ -116,8 +118,8 @@ def count_above_policy(state):
     ],
 )
 def test_imitation_rnn(action_mode: ActionMode, iterations: int, embedding_dim: int):
-    domain = "rddl/blink_enough_bandit.rddl"
-    instance = "rddl/blink_enough_bandit_i0.rddl"
+    domain = "rddl/blink_enough_bandit/domain.rddl"
+    instance = "rddl/blink_enough_bandit/instance_1.rddl"
 
     logging.getLogger("regawa").setLevel(logging.ERROR)
     logfile = logging.FileHandler("test_imitation_rnn.log", mode="w")
@@ -133,6 +135,7 @@ def test_imitation_rnn(action_mode: ActionMode, iterations: int, embedding_dim: 
         env_id,
         domain=domain,
         instance=instance,
+        remove_false=True,
         # add_inverse_relations=False,
         # types_instead_of_objects=False,
     )
@@ -148,16 +151,23 @@ def test_imitation_rnn(action_mode: ActionMode, iterations: int, embedding_dim: 
         action_mode=action_mode,
     )
 
-    config = AgentConfig(n_types, n_relations, n_actions, params, arity=2)
+    config = AgentConfig(
+        n_types,
+        n_relations,
+        n_actions,
+        remove_false_fluents=True,
+        hyper_params=params,
+        arity=2,
+    )
 
-    agent = RecurrentGraphAgent(config)
+    agent = RecurrentGraphAgent(config, rngs=None)
 
     optimizer = th.optim.AdamW(
         agent.parameters(), lr=0.01, amsgrad=True, weight_decay=0.01
     )
 
     data = [evaluate(env, agent, 0) for i in range(10)]
-    rewards, _, _ = zip(*data)
+    rewards, *_ = zip(*data)
     logger.info("Sum Reward Before Training: %s", np.mean([np.sum(r) for r in rewards]))
 
     # num_seeds = 10
@@ -166,7 +176,7 @@ def test_imitation_rnn(action_mode: ActionMode, iterations: int, embedding_dim: 
     losses, norms, per_param_grad = zip(*data)
 
     data = [evaluate(env, agent, 0) for i in range(3)]
-    rewards, _, _ = zip(*data)
+    rewards, *_ = zip(*data)
     avg_reward = np.mean([np.sum(r) for r in rewards])
 
     plot_loses_grads(losses, norms, action_mode)
@@ -195,12 +205,13 @@ def test_imitation_rnn(action_mode: ActionMode, iterations: int, embedding_dim: 
 def iteration(i, env, agent, optimizer, seed: int):
     r, length = rollout(env, seed, policy, 2.0)
     b = heterostatedata_to_tensors(r.obs.batch)
+    actions = th.atleast_2d(th.as_tensor(r.actions, dtype=th.int64))
     loss, grad_norm, per_param_grad = update(
-        agent, optimizer, r.actions, b, max_grad_norm=1.0
+        agent, optimizer, actions, b, max_grad_norm=1.0
     )
     print(f"{i} Loss: {loss:.3f}, Grad Norm: {grad_norm:.3f}, Length: {length}")
     return loss, grad_norm, per_param_grad
 
 
 if __name__ == "__main__":
-    test_imitation_rnn(ActionMode.NODE_THEN_ACTION, 60, 16)
+    test_imitation_rnn(ActionMode.ACTION_THEN_NODE, 120, 16)

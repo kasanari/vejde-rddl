@@ -68,7 +68,7 @@ def make_env(
         else StackingGroundedGraphWrapper(env, model=model)
     )
     env = IndexActionWrapper(env, model)
-    env = IndexObsWrapper(env, model)
+    env = IndexObsWrapper(env, model, stacking)
     return env, grounded_rddl_model, model
 
 
