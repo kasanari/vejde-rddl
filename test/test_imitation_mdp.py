@@ -81,9 +81,9 @@ def test_imitation(
     render_logfile = logging.FileHandler("test_imitation_mdp_render.log", mode="w")
     render_logger.addHandler(render_logfile)
 
-    env_id = register_env()
+    env_id = register_env(domain=domain, instance=instance, remove_false=remove_false)
     env: gym.Env = gym.make(
-        env_id, domain=domain, instance=instance, remove_false=remove_false
+        env_id,
     )
 
     params = GNNParams(

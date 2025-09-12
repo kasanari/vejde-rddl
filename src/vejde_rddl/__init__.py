@@ -1,3 +1,5 @@
+from functools import partial
+from pathlib import Path
 from typing import Any, SupportsFloat
 
 import gymnasium
@@ -8,6 +10,7 @@ from pyRDDLGym.core.compiler.model import RDDLLiftedModel
 from pyRDDLGym.core.parser.parser import RDDLParser
 from pyRDDLGym.core.parser.reader import RDDLReader
 from rddlrepository import RDDLRepoManager
+from regawa.data import HeteroObsData
 
 from .rddl_default_invalid_action_wrapper import (
     RDDLDefaultInvalidActions,
@@ -81,6 +84,7 @@ class RDDLCycleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
         remove_none: bool = False,
         optimize: bool = False,
         seed: int | None = None,
+        **kwargs: dict[str, Any],
     ) -> None:
         super().__init__()
 
@@ -166,6 +170,7 @@ class RDDLGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
         remove_false: bool = False,
         remove_none: bool = False,
         optimize: bool = False,
+        **kwargs: dict[str, Any],
     ) -> None:
         super().__init__()
         env, grounded_model, model = make_env(
@@ -200,7 +205,9 @@ class RDDLGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
 
 
 class RDDLStackingGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
-    def __init__(self, domain: str, instance: str, remove_false: bool) -> None:
+    def __init__(
+        self, domain: str, instance: str, remove_false: bool, **kwargs: dict[str, Any]
+    ) -> None:
         super().__init__()
         env, model, grounded_model = make_env(
             domain, instance, remove_false=remove_false, stacking=True
@@ -218,7 +225,7 @@ class RDDLStackingGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[Dict, dict[str, Any]]:
+    ) -> tuple[HeteroObsData, dict[str, Any]]:
         super().reset(seed=seed)
         return self.env.reset(seed=seed, options=options)
 
@@ -226,29 +233,77 @@ class RDDLStackingGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
         return self.env.render()
 
 
-def register_env():
-    # TODO move som of the env init parameters here. domain, remove false.
-    env_id = "RDDLGraphEnv-v0"
+def register_env(
+    domain: str,
+    instance: str,
+    remove_false: bool = False,
+    remove_none: bool = False,
+    optimize: bool = False,
+):
+    env_id = f"RDDLGraphEnv-{Path(domain).name}__{Path(instance).name}-v0"
+    env_func = partial(
+        RDDLGraphEnv,
+        domain=domain,
+        instance=instance,
+        remove_false=remove_false,
+        remove_none=remove_none,
+        optimize=optimize,
+    )
     gymnasium.register(
         id=env_id,
-        entry_point="vejde_rddl:RDDLGraphEnv",
+        entry_point=env_func,
     )
     return env_id
 
 
-def register_shuffle_env():
-    env_id = "RDDLCycleInstancesEnv-v0"
+def register_shuffle_env(
+    domain: str,
+    instance: list[str],
+    remove_false: bool = False,
+    remove_none: bool = False,
+    optimize: bool = False,
+    seed: int | None = None,
+):
+    max_instance_name_length = 3
+    instance_str = "_".join(
+        list(
+            map(
+                lambda x: str(Path(str(x)).name)[:max_instance_name_length],
+                instance,
+            )
+        )
+    )
+    env_id = f"RDDLCycleInstancesEnv-{Path(domain).name}__{instance_str}-v0"
+    env_func = partial(
+        RDDLCycleInstancesEnv,
+        domain=domain,
+        instance=instance,
+        remove_false=remove_false,
+        remove_none=remove_none,
+        optimize=optimize,
+        seed=seed,
+    )
     gymnasium.register(
         id=env_id,
-        entry_point="vejde_rddl:RDDLCycleInstancesEnv",
+        entry_point=env_func,
     )
     return env_id
 
 
-def register_pomdp_env():
-    env_id = "RDDLPOMDPGraphEnv-v0"
+def register_pomdp_env(
+    domain: str,
+    instance: str,
+    remove_false: bool = False,
+):
+    env_id = f"RDDLPOMDPGraphEnv-{Path(domain).name}__{Path(instance).name}-v0"
+    env_func = partial(
+        RDDLStackingGraphEnv,
+        domain=domain,
+        instance=instance,
+        remove_false=remove_false,
+    )
     gymnasium.register(
         id=env_id,
-        entry_point="vejde_rddl:RDDLStackingGraphEnv",
+        entry_point=env_func,
     )
     return env_id
