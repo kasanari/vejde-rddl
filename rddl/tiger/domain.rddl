@@ -15,7 +15,7 @@ domain tiger {
 	//TRUE_PROBABILITY : { non-fluent, real, default = 0.85 };
 	//FAKE_PROBABILITY : { non-fluent, real, default = 0.15 };
 
-	DOOR(door) : { non-fluent, bool, default = true }; 
+	closed(door) : { non-fluent, bool, default = true }; 
 
 	growl(door) : { observ-fluent, bool }; 
 
@@ -62,7 +62,7 @@ domain tiger {
 			)
 		else if (listen(?d)) then
 			-1 // penalty for listening
-		else 0
+		else -10 // penalty for doing nothing
 		]
 	];
 
