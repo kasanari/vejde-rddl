@@ -1,19 +1,28 @@
-from vejde_rddl import register_env
+from regawa import ActionMode, GNNParams, agent_from_env
+from vejde_rddl import register_env, register_pomdp_env
 import gymnasium as gym
 import pytest
 
 
 @pytest.fixture(scope="module")
 def tiger_env():
-    domain = "rddl/tiger/domain.rddl"
-    instance = "rddl/tiger/instance_1.rddl"
-    env_id = register_env()
-    env = gym.make(
-        env_id,
-        domain=domain,
-        instance=instance,
+    env_id = register_env(
+        domain="rddl/tiger/domain.rddl",
+        instance="rddl/tiger/instance_1.rddl",
         remove_false=True,
     )
+    env = gym.make(env_id)
+    return env
+
+
+@pytest.fixture(scope="module")
+def stacking_tiger_env():
+    env_id = register_pomdp_env(
+        domain="rddl/tiger/domain.rddl",
+        instance="rddl/tiger/instance_2.rddl",
+        remove_false=True,
+    )
+    env = gym.make(env_id)
     return env
 
 
@@ -112,6 +121,51 @@ def test_false_positive(tiger_env):
         done = terminated or truncated
 
     assert heard_tiger, "Did not hear the tiger from the left door"
+
+
+def test_stacking_tiger_env(stacking_tiger_env: gym.Env):
+    import torch as th
+    import random
+
+    action_mode = ActionMode.ACTION_THEN_NODE
+    params = GNNParams(
+        layers=3,
+        embedding_dim=16,
+        activation=th.nn.Mish(),
+        aggregation="sum",
+        action_mode=action_mode,
+    )
+
+    agent = agent_from_env(stacking_tiger_env, params)
+
+    obs, info = stacking_tiger_env.reset(seed=22)
+    turns = 100
+    total_reward = 0.0
+    for t in range(turns):
+        doors = info["idx_to_object"]
+        if t < turns - 1:
+            chosen_door = random.choice(doors[1:])
+            action_str = "listen"
+        else:
+            obs = info["rddl_obs"]
+            # on the last turn, open the door we believe the tiger is not behind
+            num_left_growls = sum(obs.get(("growl", "left"), []))
+            num_right_growls = sum(obs.get(("growl", "right"), []))
+            action_str = "open"
+            if num_left_growls > num_right_growls:
+                chosen_door = "right"
+            else:
+                chosen_door = "left"
+        action = (
+            info["action_fluents"].index(action_str),
+            info["idx_to_object"].index(chosen_door),
+        )
+        obs, reward, terminated, truncated, info = stacking_tiger_env.step(action)
+        total_reward += reward
+    assert terminated is True
+    assert truncated is True
+    assert chosen_door == "left", "The tiger should be behind the right door."
+    print("Reward:", total_reward)
 
 
 if __name__ == "__main__":

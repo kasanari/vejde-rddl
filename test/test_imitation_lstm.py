@@ -130,12 +130,13 @@ def test_imitation_rnn(action_mode: ActionMode, iterations: int, embedding_dim: 
     np.random.seed(0)
     random.seed(0)
 
-    env_id = register_env()
-    env: gym.Env[Dict, MultiDiscrete] = gym.make(
-        env_id,
+    env_id = register_env(
         domain=domain,
         instance=instance,
         remove_false=True,
+    )
+    env: gym.Env[Dict, MultiDiscrete] = gym.make(
+        env_id,
         # add_inverse_relations=False,
         # types_instead_of_objects=False,
     )
