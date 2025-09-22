@@ -6,11 +6,10 @@ import numpy as np
 import pytest
 from gymnasium.utils.env_checker import check_env
 
+from regawa.data.data import HeteroObsData
+from regawa.wrappers.space import HeteroStateSpace
+from regawa.wrappers.space import FactorGraphSpace
 from vejde_rddl import register_env, register_pomdp_env
-from regawa.wrappers import AddActionWrapper, LabelingWrapper, LastObsStackingWrapper
-
-env_id = register_env()
-pomdp_env_id = register_pomdp_env()
 
 
 def counting_policy(state):
@@ -72,20 +71,16 @@ def step(
     return obs, sum_reward, time, done
 
 
-@pytest.mark.parametrize("env_id", [env_id, pomdp_env_id])
-def test_render(seed, env_id):
+@pytest.mark.parametrize("env_register", [register_env, register_pomdp_env])
+def test_render(seed, env_register):
     # domain = "rddl/conditional_bandit.rddl"
     # instance = "rddl/conditional_bandit_i0.rddl"
-    domain = "Elevators_MDP_ippc2011"
-    instance = 1
+    env_id = env_register(domain="Elevators_MDP_ippc2011", instance=1)
+
     # domain = "SysAdmin_MDP_ippc2011"
     # instance = 1
 
-    env = gym.make(
-        env_id,
-        domain=domain,
-        instance=instance,
-    )
+    env = gym.make(env_id)
 
     # domain = "RecSim_ippc2023"
     # domain = "SkillTeaching_MDP_ippc2011"
@@ -114,8 +109,13 @@ def check_obs_in_space(key: str, obs: dict[str, Any], obs_space: gym.spaces.Spac
     if isinstance(obs_space, gym.spaces.Discrete):
         assert obs in obs_space, f"{key} not in {obs_space}"
         return True
+    if isinstance(obs_space, HeteroStateSpace):
+        check_obs_in_space("bool", obs.bool, obs_space.bool)
+        check_obs_in_space("float", obs.float, obs_space.float)
+    if isinstance(obs_space, FactorGraphSpace):
+        pass
 
-    assert False
+    assert False, f"Unknown space type {type(obs_space)}"
 
 
 def test_pomdp_wrapper():
@@ -170,8 +170,8 @@ def test_pomdp_wrapper():
     return sum_reward
 
 
-@pytest.mark.parametrize("env_id", [env_id, pomdp_env_id])
-def test_rddl_domains(env_id):
+@pytest.mark.parametrize("env_register", [register_env, register_pomdp_env])
+def test_rddl_domains(env_register):
     from rddlrepository import RDDLRepoManager
 
     manager = RDDLRepoManager(rebuild=True)
@@ -198,6 +198,7 @@ def test_rddl_domains(env_id):
             continue
 
         try:
+            env_id = env_register(domain=domain, instance=p.instances[0])
             env = gym.make(
                 env_id,
                 domain=domain,
@@ -230,14 +231,12 @@ def test_rddl_domains(env_id):
 
 def test_wrapper():
     seed = 1
-    domain = "rddl/conditional_bandit.rddl"
-    instance = "rddl/conditional_bandit_i0.rddl"
-    env_id = register_env()
-    env = gym.make(
-        env_id,
-        domain=domain,
-        instance=instance,
+
+    env_id = register_env(
+        domain="rddl/conditional_bandit/domain.rddl",
+        instance="rddl/conditional_bandit/instance_1.rddl",
     )
+    env = gym.make(env_id)
 
     # domain = "RecSim_ippc2023"
     # domain = "SkillTeaching_MDP_ippc2011"

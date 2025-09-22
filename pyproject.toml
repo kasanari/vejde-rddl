@@ -17,8 +17,12 @@ cu124 = ["regawa[cu124, rl]"]
 
 
 [tool.uv.sources]
-regawa = { git = "git+ssh://git@gitr.sys.kth.se/jaknyb/RDDLGraphWrapper"}
+regawa = { workspace = true }
 
+[tool.uv.workspace]
+members = [
+  "rddlgraphwrapper",
+]
 
 [dependency-groups]
 dev = ["pytest>=8.3.5", "matplotlib>=3.10.1", "graphviz>=0.20.3"]
