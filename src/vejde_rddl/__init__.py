@@ -83,6 +83,7 @@ class RDDLCycleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
         remove_false: bool = False,
         remove_none: bool = False,
         optimize: bool = False,
+        stacking: bool = False,
         seed: int | None = None,
         **kwargs: dict[str, Any],
     ) -> None:
@@ -115,6 +116,7 @@ class RDDLCycleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
                 has_enums,
                 remove_false=remove_false,
                 remove_none=remove_none,
+                stacking=stacking,
                 add_render_graph_to_info=(not optimize),
             )[0]
             for i in instance
@@ -262,6 +264,7 @@ def register_shuffle_env(
     remove_false: bool = False,
     remove_none: bool = False,
     optimize: bool = False,
+    stacking: bool = False,
     seed: int | None = None,
 ):
     max_instance_name_length = 3
@@ -281,6 +284,7 @@ def register_shuffle_env(
         remove_false=remove_false,
         remove_none=remove_none,
         optimize=optimize,
+        stacking=stacking,
         seed=seed,
     )
     gymnasium.register(
