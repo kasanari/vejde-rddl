@@ -11,7 +11,6 @@ from pyRDDLGym.core.parser.parser import RDDLParser
 from pyRDDLGym.core.parser.reader import RDDLReader
 from rddlrepository import RDDLRepoManager
 from regawa.data import HeteroObsData
-
 from .rddl_default_invalid_action_wrapper import (
     RDDLDefaultInvalidActions,
 )
@@ -23,6 +22,7 @@ from regawa.wrappers import (
     RemoveFalseWrapper,
     RemoveNoneWrapper,
     IndexObsWrapper,
+    AddActionWrapper,
 )
 
 from .rddl_convert_enums_wrapper import RDDLConvertEnums
@@ -49,6 +49,7 @@ def make_env(
     has_enums: bool = False,
     remove_false: bool = False,
     remove_none: bool = False,
+    add_actions_to_obs: bool = False,
     stacking: bool = False,
     add_render_graph_to_info: bool = True,
 ):
@@ -59,6 +60,7 @@ def make_env(
     env = RDDLDefaultInvalidActions(env)
     env = RDDLToTuple(env)
     env = AddConstantsWrapper(env, grounded_rddl_model, only_add_on_reset=stacking)
+    env = AddActionWrapper(env) if add_actions_to_obs else env
     env = RemoveFalseWrapper(env) if remove_false else env
     env = RemoveNoneWrapper(env) if remove_none else env
     env = RDDLConvertEnums(env) if has_enums else env
@@ -84,18 +86,16 @@ class RDDLCycleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
         remove_none: bool = False,
         optimize: bool = False,
         stacking: bool = False,
+        add_actions_to_obs: bool = False,
         seed: int | None = None,
         **kwargs: dict[str, Any],
     ) -> None:
         super().__init__()
 
-        manager = RDDLRepoManager()
-        problem = manager.get_problem(domain)
-        reader = RDDLReader(problem.get_domain(), problem.get_instance(instance[0]))
-        parser = RDDLParser(lexer=None, verbose=False)
-        parser.build()
-        rddl = parser.parse(reader.rddltxt)
-        model = RDDLModel(RDDLLiftedModel(rddl))
+        # RDDL parser needs an instance, so we just use the first one to get the model
+        env = pyRDDLGym.make(domain, str(instance[0]), enforce_action_constraints=True)  # type: ignore
+        rddl_model = env.model
+        model = RDDLModel(rddl_model)
         current_idx = -1
 
         has_enums = len(model.model.enum_types) > 0
@@ -118,6 +118,7 @@ class RDDLCycleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
                 remove_none=remove_none,
                 stacking=stacking,
                 add_render_graph_to_info=(not optimize),
+                add_actions_to_obs=add_actions_to_obs,
             )[0]
             for i in instance
         ]
@@ -265,6 +266,7 @@ def register_shuffle_env(
     remove_none: bool = False,
     optimize: bool = False,
     stacking: bool = False,
+    add_actions_to_obs: bool = False,
     seed: int | None = None,
 ):
     max_instance_name_length = 3
@@ -285,6 +287,7 @@ def register_shuffle_env(
         remove_none=remove_none,
         optimize=optimize,
         stacking=stacking,
+        add_actions_to_obs=add_actions_to_obs,
         seed=seed,
     )
     gymnasium.register(
