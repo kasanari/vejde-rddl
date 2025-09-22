@@ -9,7 +9,7 @@ non-fluents instance2_nonfluents {
 
 instance instance2 {
 	domain = tiger;
-	non-fluents = instance1_nonfluents;
+	non-fluents = instance2_nonfluents;
 	max-nondef-actions = 1;
 	horizon  = 100;
 	discount = 1.0;

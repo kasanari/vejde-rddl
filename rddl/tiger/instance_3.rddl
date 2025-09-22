@@ -1,0 +1,19 @@
+non-fluents instance3_nonfluents {
+	domain = tiger;
+	objects {
+		door : {d1, d2, d3, d4, d5};
+		tiger: {stripey};
+	};
+
+}
+
+instance instance3 {
+	domain = tiger;
+	non-fluents = instance3_nonfluents;
+	max-nondef-actions = 1;
+	horizon  = 100;
+	discount = 1.0;
+	init-state {
+		hiding(d2, stripey) = true;
+	};
+}
