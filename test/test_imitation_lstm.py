@@ -1,5 +1,4 @@
 from collections.abc import Callable
-from datetime import datetime
 import json
 import logging
 import random
@@ -8,7 +7,6 @@ import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
-from regawa import agent_from_env
 import torch as th
 from gymnasium.spaces import Dict, MultiDiscrete
 
@@ -119,12 +117,7 @@ def count_above_policy(state):
         (ActionMode.ACTION_THEN_NODE, 60, 16),
     ],
 )
-def test_imitation_rnn(
-    action_mode: ActionMode,
-    iterations: int,
-    embedding_dim: int,
-    remove_false: bool = True,
-):
+def test_imitation_rnn(action_mode: ActionMode, iterations: int, embedding_dim: int):
     domain = "rddl/blink_enough_bandit/domain.rddl"
     instance = "rddl/blink_enough_bandit/instance_1.rddl"
 
@@ -140,9 +133,16 @@ def test_imitation_rnn(
     env_id = register_env(
         domain=domain,
         instance=instance,
-        remove_false=remove_false,
+        remove_false=True,
     )
-    env: gym.Env[Dict, MultiDiscrete] = gym.make(env_id)
+    env: gym.Env[Dict, MultiDiscrete] = gym.make(
+        env_id,
+        # add_inverse_relations=False,
+        # types_instead_of_objects=False,
+    )
+    n_types = model_utils.n_types(env.observation_space)
+    n_relations = model_utils.n_relations(env.observation_space)
+    n_actions = model_utils.n_actions(env.action_space)
 
     params = GNNParams(
         layers=3,
@@ -152,9 +152,16 @@ def test_imitation_rnn(
         action_mode=action_mode,
     )
 
-    agent = agent_from_env(
-        RecurrentGraphAgent, env, params, remove_false_fluents=remove_false
+    config = AgentConfig(
+        n_types,
+        n_relations,
+        n_actions,
+        remove_false_fluents=True,
+        hyper_params=params,
+        arity=2,
     )
+
+    agent = RecurrentGraphAgent(config, rngs=None)
 
     optimizer = th.optim.AdamW(
         agent.parameters(), lr=0.01, amsgrad=True, weight_decay=0.01
@@ -181,7 +188,7 @@ def test_imitation_rnn(
         avg_reward,
     )
 
-    max_loss = 8e-6
+    max_loss = 7e-6
     assert losses[-1] < max_loss, "Loss was too high: expected less than %s, got %s" % (
         max_loss,
         losses[-1],
@@ -197,24 +204,15 @@ def test_imitation_rnn(
 
 
 def iteration(i, env, agent, optimizer, seed: int):
-    time = datetime.now()
     r, length = rollout(env, seed, policy, 2.0)
     b = heterostatedata_to_tensors(r.obs.batch)
     actions = th.atleast_2d(th.as_tensor(r.actions, dtype=th.int64))
     loss, grad_norm, per_param_grad = update(
         agent, optimizer, actions, b, max_grad_norm=1.0
     )
-    time_taken = datetime.now() - time
-    print(
-        f"{i} Loss: {loss:.3f}, Grad Norm: {grad_norm:.3f}, Length: {length}",
-        "Time: ",
-        time_taken.microseconds,
-        "us",
-    )
+    print(f"{i} Loss: {loss:.3f}, Grad Norm: {grad_norm:.3f}, Length: {length}")
     return loss, grad_norm, per_param_grad
 
 
 if __name__ == "__main__":
-    time = datetime.now()
     test_imitation_rnn(ActionMode.ACTION_THEN_NODE, 120, 16)
-    print("Total time:", datetime.now() - time)

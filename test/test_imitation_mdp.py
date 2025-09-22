@@ -11,7 +11,7 @@ import torch as th
 import torch.optim as optim
 
 from regawa.policy import ActionMode
-from regawa import GNNParams, GraphAgent
+from regawa import GNNParams
 from regawa.data import heterostatedata_to_tensors
 from regawa.rl.util import evaluate, rollout, save_eval_data, update, update_vf_agent
 from regawa import agent_from_env
@@ -63,7 +63,7 @@ def test_imitation(
     action_mode: ActionMode,
     iterations: int,
     embedding_dim: int,
-    remove_false: bool = True,
+    remove_false: bool = False,
 ):
     domain = "rddl/conditional_bandit/domain.rddl"
     instance = "rddl/conditional_bandit/instance_1.rddl"
@@ -94,10 +94,8 @@ def test_imitation(
         action_mode=action_mode,
     )
 
-    agent = agent_from_env(GraphAgent, env, params, remove_false_fluents=remove_false)
-    vf_agent = agent_from_env(
-        GraphAgent, env, params, remove_false_fluents=remove_false
-    )
+    agent = agent_from_env(env, params)
+    vf_agent = agent_from_env(env, params)
 
     # agent, config = agent.load_agent("conditional_bandit.pth")
 
