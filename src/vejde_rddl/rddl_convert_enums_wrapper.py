@@ -47,16 +47,16 @@ class RDDLConvertEnums(gym.Wrapper[WrapperActType, WrapperObsType, ObsType, ActT
         obs = {k: v for k, v in obs.items() if predicate(k) not in self.enum_fluents}
         return obs
 
-    def convert_action(self, action: Grounding) -> dict[str, str]:
+    def convert_action(self, action: Grounding) -> tuple[Grounding, int]:
         action_with_enum, *args = action
 
-        action, *enum_value_index = action_with_enum.split("^^^")
+        action_p, *enum_value_index = action_with_enum.split("^^^")
 
         value = True if len(enum_value_index) == 0 else int(enum_value_index[0])
 
         args = [a.replace("@", "") for a in args]
 
-        key = (action, *args)
+        key = (action_p, *args)
 
         return (key, value)
 
