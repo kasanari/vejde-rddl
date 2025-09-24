@@ -46,15 +46,15 @@ def model_from_domain(
 def make_env(
     domain: str,
     instance: str,
-    has_enums: bool = False,
     remove_false: bool = False,
-    remove_none: bool = False,
+    remove_none: bool = True,
     add_actions_to_obs: bool = False,
     stacking: bool = False,
     add_render_graph_to_info: bool = True,
 ):
     env = pyRDDLGym.make(domain, str(instance), enforce_action_constraints=True)  # type: ignore
     rddl_model = env.model
+    has_enums = len(rddl_model.enum_types) > 0
     model = RDDLModel(rddl_model)
     grounded_rddl_model = RDDLGroundedModel(rddl_model, remove_false=remove_false)
     env = RDDLDefaultInvalidActions(env)
@@ -98,14 +98,12 @@ class RDDLCycleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
         model = RDDLModel(rddl_model)
         current_idx = -1
 
-        has_enums = len(model.model.enum_types) > 0
         self.domain = domain
         self.rng = (
             np.random.default_rng(seed) if seed is not None else np.random.default_rng()
         )
         self.instances = instance
         self.remove_false = remove_false
-        self.has_enums = has_enums
 
         order = list(range(len(instance)))
 
@@ -113,7 +111,6 @@ class RDDLCycleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
             make_env(
                 domain,
                 str(i),
-                has_enums,
                 remove_false=remove_false,
                 remove_none=remove_none,
                 stacking=stacking,
@@ -148,7 +145,6 @@ class RDDLCycleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[Dict, dict[str, Any]]:
         super().reset(seed=seed)
-
         current_idx = (self.index + 1) % len(self.instances)
         if current_idx == 0:
             self.rng.shuffle(self.order)
@@ -240,7 +236,7 @@ def register_env(
     domain: str,
     instance: str,
     remove_false: bool = False,
-    remove_none: bool = False,
+    remove_none: bool = True,
     optimize: bool = False,
 ):
     env_id = f"RDDLGraphEnv-{Path(domain).name}__{Path(instance).name}-v0"
