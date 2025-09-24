@@ -81,7 +81,6 @@ class RDDLConvertEnums(gym.Wrapper[WrapperActType, WrapperObsType, ObsType, ActT
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[WrapperObsType, dict[str, Any]]:
-        super().reset(seed=seed)
         obs, info = self.env.reset(seed=seed)
 
         obs = self.transform_obs(obs)

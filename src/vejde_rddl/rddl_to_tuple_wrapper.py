@@ -44,7 +44,6 @@ class RDDLToTuple(gym.Wrapper[WrapperActType, WrapperObsType, ObsType, ActType])
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[WrapperObsType, dict[str, Any]]:
-        super().reset(seed=seed)
         obs, info = self.env.reset(seed=seed)
 
         obs = {rddl_ground_to_tuple(k): v for k, v in obs.items()}
