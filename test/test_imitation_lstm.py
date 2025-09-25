@@ -123,7 +123,7 @@ def test_imitation_rnn(
     action_mode: ActionMode,
     iterations: int,
     embedding_dim: int,
-    remove_false: bool = True,
+    remove_false: bool = False,
 ):
     domain = "rddl/blink_enough_bandit/domain.rddl"
     instance = "rddl/blink_enough_bandit/instance_1.rddl"
@@ -148,13 +148,11 @@ def test_imitation_rnn(
         layers=3,
         embedding_dim=embedding_dim,
         activation=th.nn.Mish(),
-        aggregation="sum",
+        aggregation="max",
         action_mode=action_mode,
     )
 
-    agent = agent_from_env(
-        RecurrentGraphAgent, env, params, remove_false_fluents=remove_false
-    )
+    agent = agent_from_env(RecurrentGraphAgent, env, params)
 
     optimizer = th.optim.AdamW(
         agent.parameters(), lr=0.01, amsgrad=True, weight_decay=0.01
@@ -202,7 +200,7 @@ def iteration(i, env, agent, optimizer, seed: int):
     b = heterostatedata_to_tensors(r.obs.batch)
     actions = th.atleast_2d(th.as_tensor(r.actions, dtype=th.int64))
     loss, grad_norm, per_param_grad = update(
-        agent, optimizer, actions, b, max_grad_norm=1.0
+        agent, optimizer, actions, b, max_grad_norm=0.1
     )
     time_taken = datetime.now() - time
     print(
@@ -216,5 +214,5 @@ def iteration(i, env, agent, optimizer, seed: int):
 
 if __name__ == "__main__":
     time = datetime.now()
-    test_imitation_rnn(ActionMode.ACTION_THEN_NODE, 120, 16)
+    test_imitation_rnn(ActionMode.ACTION_THEN_NODE, 50, 16)
     print("Total time:", datetime.now() - time)
