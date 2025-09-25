@@ -70,7 +70,9 @@ def make_env(
             env, model=model, add_render_graph_to_info=add_render_graph_to_info
         )
         if not stacking
-        else StackingGroundedGraphWrapper(env, model=model)
+        else StackingGroundedGraphWrapper(
+            env, model=model, add_render_graph_to_info=add_render_graph_to_info
+        )
     )
     env = IndexActionWrapper(env, model)
     env = IndexObsWrapper(env, model, stacking)
