@@ -259,7 +259,7 @@ def register_shuffle_env(
     domain: str,
     instance: list[str],
     remove_false: bool = False,
-    remove_none: bool = False,
+    remove_none: bool = True,
     optimize: bool = False,
     stacking: bool = False,
     add_actions_to_obs: bool = False,
