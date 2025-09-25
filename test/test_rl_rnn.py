@@ -18,7 +18,8 @@ def main():
         env_id=env_id,
         total_timesteps=4000,
         num_steps=20,
-        weight_decay=0.0,
+        weight_decay=0.01,
+        max_grad_norm=0.1,
         debug=True,
         agent_config=GNNParams(
             layers=4,
