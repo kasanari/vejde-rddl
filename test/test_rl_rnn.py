@@ -1,15 +1,17 @@
 from regawa.rl import train, Args
 from regawa import GNNParams, ActionMode
 from torch import nn
-from vejde_rddl import register_env
+from vejde_rddl import register_shuffle_env
 import gymnasium as gym
 
 def main():
     problem = "tiger"
-    env_id = register_env(
-        domain = f"rddl/{problem}/domain.rddl",
-        instance = f"rddl/{problem}/instance_2.rddl",
-        remove_false=True,
+    env_id = register_shuffle_env(
+        domain=f"rddl/{problem}/domain.rddl",
+        instance=[f"rddl/{problem}/instance_{i}.rddl" for i in range(1, 4)],
+        remove_false=False,
+        add_actions_to_obs=True,
+        stacking=True,
     )
     args = Args(
         agent_class="RecurrentGraphAgent",
@@ -36,12 +38,12 @@ def main():
     sum_reward = 0
     while not done:
         action, *_ = agent.sample_from_obs(obs, deterministic=True)
-        obs, reward, terminated, truncated, info = env.step(action)
+        obs, reward, terminated, truncated, info = env.step(action.squeeze(0).tolist())
         sum_reward += reward
         done = terminated or truncated
         time += 1
-        print(f"Step {time}: Reward {reward}, Sum Reward {sum_reward}")
     print(f"Total Reward after {time} steps: {sum_reward}")
+    print(stats)
 
 if __name__ == "__main__":
     main()
