@@ -12,23 +12,27 @@ from regawa.wrappers.space import FactorGraphSpace
 from vejde_rddl import register_env, register_pomdp_env
 
 
-def counting_policy(state):
+def counting_policy(state, object_to_idx: Callable[[str], int]) -> list[int]:
     if np.array(state["light___r_m"], dtype=bool).sum() > 3:
-        return [1, 3]
+        return [1, object_to_idx("red")]
 
     if np.array(state["light___g_m"], dtype=bool).sum() > 3:
-        return [1, 1]
+        return [1, object_to_idx("green")]
 
-    return [0, 0]
+    return [0, object_to_idx("None")]
 
 
-def policy(state):
+def policy(state, object_to_idx: Callable[[str], int]) -> list[int]:
     if state["enough_light___r_m"]:
-        return [1, 3]
+        return [1, object_to_idx("red")]
 
     if state["enough_light___g_m"]:
-        return [1, 1]
+        return [1, object_to_idx("green")]
 
+    return [0, object_to_idx("None")]
+
+
+def do_nothing_policy(state, object_to_idx: Callable[[str], int]) -> list[int]:
     return [0, 0]
 
 
@@ -40,19 +44,20 @@ def save_dot(dot, path):
 def step_with_render(
     env: gym.Env,
     obs: dict[str, Any],
+    info: dict[str, Any],
     sum_reward: int,
     time: int,
     done: bool,
-    policy: Callable[[dict[str, Any]], Any],
+    policy: Callable[[dict[str, Any], Callable[[str], int]], Any],
 ):
-    action = policy(obs)
+    action = policy(obs, lambda x: info["object_to_idx"].index(x))
     obs, reward, terminated, truncated, info = env.step(action)
     dot = env.render()
-    save_dot(dot, f"render/{time}.dot")
+    # save_dot(dot, f"render/{time}.dot")
     done = terminated or truncated
     sum_reward += reward
     time += 1
-    return sum_reward, time, done
+    return obs, sum_reward, time, done, info
 
 
 def step(
@@ -72,13 +77,14 @@ def step(
 
 
 @pytest.mark.parametrize("env_register", [register_env, register_pomdp_env])
-def test_render(seed, env_register):
+def test_render(env_register):
     # domain = "rddl/conditional_bandit.rddl"
     # instance = "rddl/conditional_bandit_i0.rddl"
-    env_id = env_register(domain="Elevators_MDP_ippc2011", instance=1)
-
+    domain = "Elevators_MDP_ippc2011"
     # domain = "SysAdmin_MDP_ippc2011"
+    env_id = env_register(domain=domain, instance="1")
     # instance = 1
+    seed = 1
 
     env = gym.make(env_id)
 
@@ -87,13 +93,15 @@ def test_render(seed, env_register):
     # env = GroundedRDDLGraphWrapper(domain, instance)
     obs, info = env.reset(seed=seed)
     dot = env.render()
-    save_dot(dot, f"render/{domain}/0.dot")
+    # save_dot(dot, f"render/{domain}/0.dot")
     done = False
     time = 0
     sum_reward = 0
 
     while not done:
-        sum_reward, time, done = step_with_render(env, sum_reward, time, done)
+        obs, sum_reward, time, done, info = step_with_render(
+            env, obs, info, sum_reward, time, done, do_nothing_policy
+        )
 
     return sum_reward
 
@@ -154,7 +162,7 @@ def test_pomdp_wrapper():
         time += 1
         # action = env.action_space.sample()
         # action = [1, 3]
-        print(info["rddl_state"])
+        # print(info["rddl_state"])
 
         action = policy(info["rddl_state"])
         # print(info["state"].edge_attributes)
@@ -332,6 +340,6 @@ if __name__ == "__main__":
     # return_ = [test_grounded(i) for i in range(1)]
     # print(np.mean(return_))
     # test_last_obs_wrappers()
-    # test_render(1)
-    # test_wrapper()
+    test_render(register_env)
+    test_wrapper()
     pytest.main(["-s", "test/test_wrapper.py"])

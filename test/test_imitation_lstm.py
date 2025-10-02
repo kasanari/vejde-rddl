@@ -152,7 +152,7 @@ def test_imitation_rnn(
         action_mode=action_mode,
     )
 
-    agent = agent_from_env(RecurrentGraphAgent, env, params)
+    agent = agent_from_env("RecurrentGraphAgent", env, params)
 
     optimizer = th.optim.AdamW(
         agent.parameters(), lr=0.01, amsgrad=True, weight_decay=0.01
@@ -165,11 +165,14 @@ def test_imitation_rnn(
     # num_seeds = 10
 
     data = [iteration(i, env, agent, optimizer, 0) for i in range(iterations)]
-    losses, norms, per_param_grad = zip(*data)
+    losses, norms, per_param_grad, times = zip(*data)
 
     data = [evaluate(env, agent, 0) for i in range(3)]
     rewards, *_ = zip(*data)
     avg_reward = np.mean([np.sum(r) for r in rewards])
+
+    avg_time = sum(t.microseconds for t in times) / len(times)
+    logger.info("Average time per iteration: %s us", avg_time)
 
     plot_loses_grads(losses, norms, action_mode)
     plot_per_grad_norms(per_param_grad, action_mode)
@@ -209,7 +212,7 @@ def iteration(i, env, agent, optimizer, seed: int):
         time_taken.microseconds,
         "us",
     )
-    return loss, grad_norm, per_param_grad
+    return loss, grad_norm, per_param_grad, time_taken
 
 
 if __name__ == "__main__":

@@ -1,14 +1,19 @@
 import cProfile
-from regawa.rl.ppo_gnn import setup, Args
+from regawa.rl import train, Args
 from regawa import GNNParams, ActionMode
 from torch import nn
 from vejde_rddl import register_shuffle_env
 
-env_id = register_shuffle_env()
+env_id = register_shuffle_env(
+    domain="Tamarisk_MDP_ippc2014",
+    instance=["1", "2", "3", "4", "5"],
+    remove_false=True,
+)
 
 
 def main():
     args = Args(
+        agent_class="GraphAgent",
         env_id=env_id,
         total_timesteps=4000,
         num_steps=128,
@@ -16,11 +21,8 @@ def main():
         learning_rate=0.001,
         # domain="rddl/conditional_bandit/domain.rddl",
         # instance="rddl/conditional_bandit/instance_1.rddl",
-        domain="Tamarisk_MDP_ippc2014",
-        instance=[1, 2, 3, 4, 5],
         clip_coef=0.3,
         ent_coef=0.1,
-        remove_false=True,
         debug=True,
         num_envs=1,
         vf_coef=1.0,
@@ -36,10 +38,10 @@ def main():
             action_mode=ActionMode.ACTION_THEN_NODE,
         ),
     )
-    setup(args)
+    train(args)
 
 
 if __name__ == "__main__":
-    with cProfile.Profile() as pr:
-        main()
-    pr.print_stats(sort="time")
+    # with cProfile.Profile() as pr:
+    main()
+    # pr.print_stats(sort="time")

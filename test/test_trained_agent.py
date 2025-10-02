@@ -3,7 +3,7 @@ import logging
 import gymnasium as gym
 import torch
 
-from regawa.gnn import GraphAgent, RecurrentGraphAgent
+from regawa.policy import GraphAgent, RecurrentGraphAgent
 
 
 def test_rnn_agent():

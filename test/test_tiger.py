@@ -127,16 +127,16 @@ def test_stacking_tiger_env(stacking_tiger_env: gym.Env):
     import torch as th
     import random
 
-    action_mode = ActionMode.ACTION_THEN_NODE
-    params = GNNParams(
-        layers=3,
-        embedding_dim=16,
-        activation=th.nn.Mish(),
-        aggregation="sum",
-        action_mode=action_mode,
-    )
+    # action_mode = ActionMode.ACTION_THEN_NODE
+    # params = GNNParams(
+    #     layers=3,
+    #     embedding_dim=16,
+    #     activation=th.nn.Mish(),
+    #     aggregation="sum",
+    #     action_mode=action_mode,
+    # )
 
-    agent = agent_from_env(stacking_tiger_env, params)
+    # agent = agent_from_env("RecurrentGraphAgent", stacking_tiger_env, params)
 
     obs, info = stacking_tiger_env.reset(seed=22)
     turns = 100

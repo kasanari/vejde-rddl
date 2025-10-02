@@ -82,7 +82,7 @@ def test_imitation(
     render_logger.addHandler(render_logfile)
 
     env_id = register_env(domain=domain, instance=instance, remove_false=remove_false)
-    env: gym.Env = gym.make(
+    env = gym.make(
         env_id,
     )
 
@@ -94,10 +94,8 @@ def test_imitation(
         action_mode=action_mode,
     )
 
-    agent = agent_from_env(GraphAgent, env, params, remove_false_fluents=remove_false)
-    vf_agent = agent_from_env(
-        GraphAgent, env, params, remove_false_fluents=remove_false
-    )
+    agent = agent_from_env("GraphAgent", env, params)
+    vf_agent = agent_from_env("GraphAgent", env, params)
 
     # agent, config = agent.load_agent("conditional_bandit.pth")
 
@@ -167,5 +165,5 @@ def iteration(i, env, agent, optimizer, vf_agent, vf_optimizer, seed: int):
 
 if __name__ == "__main__":
     t = time.time()
-    test_imitation(ActionMode.NODE_THEN_ACTION, 30, 16)
+    test_imitation(ActionMode.ACTION_THEN_NODE, 35, 16)
     print("Time: ", time.time() - t)
