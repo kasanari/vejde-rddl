@@ -11,6 +11,7 @@ def main():
         remove_false=True,
     )
     args = Args(
+        agent_class="GraphAgent",
         env_id=env_id,
         total_timesteps=2000,
         num_steps=20,
