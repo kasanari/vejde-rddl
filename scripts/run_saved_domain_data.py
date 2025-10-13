@@ -18,13 +18,21 @@ from regawa import (
     AgentConfig,
     GraphAgent,
 )
-from regawa.inference import fn_graph_to_obsdata
+
 from regawa.model import BaseModel
 from regawa.model import max_arity
+from regawa.data.data import heterostatedata_from_obslist
+from regawa.data.torch import heterostatedata_to_tensors
+from regawa.policy.recurrent_gnn_agent import RecurrentGraphAgent
+from regawa import agent_from_model
+from regawa.policy.load import load_agent
+from regawa.wrappers.grounding_utils import fn_objects_with_type
 from vejde_rddl import register_env, register_pomdp_env
 from vejde_rddl.rddl_utils import rddl_ground_to_tuple
 from regawa.rl.util import calc_loss, evaluate, save_eval_data, update
-from regawa.wrappers import fn_obsdict_to_graph
+from regawa.wrappers import fn_heterograph_to_heteroobs
+from regawa.wrappers import fn_idx_obs
+from regawa.wrappers import fn_groundobs_to_heterograph
 
 # from regawa.wrappers import fn_objects_with_type
 from regawa.wrappers import remove_false
@@ -127,12 +135,18 @@ def from_index_action(
     return (model.action_fluents[action[0]], idx_to_obj(action[1]))
 
 
-def to_indexed_action(
-    action: GroundAction, obj_to_idx: Callable[[str], int], model: BaseModel
-) -> IndexedAction:
-    action = list(action.keys())[0] if action else ("None", "None")
-    a = from_dict_action(action, lambda x: model.action_fluents.index(x), obj_to_idx)
-    return a
+def fn_to_indexed_action(model: BaseModel):
+    def to_indexed_action(
+        action: GroundAction,
+        obj_to_idx: Callable[[str], int],
+    ) -> IndexedAction:
+        action = list(action.keys())[0] if action else ("None", "None")
+        a = from_dict_action(
+            action, lambda x: model.action_fluents.index(x), obj_to_idx
+        )
+        return a
+
+    return to_indexed_action
 
 
 render_index = 0
@@ -147,41 +161,39 @@ def get_obs(data: Recording):
 
 
 def to_graph(obs: GroundObs, model: BaseModel):
-    create_graph = fn_obsdict_to_graph(model)
-    g, _ = create_graph(obs)
+    create_graph = fn_groundobs_to_heterograph(model)
+    g = create_graph(obs)
     return create_render_graph(g.boolean, g.numeric)
 
 
-def to_obsdata(
-    obs: GroundObs,
-    action: GroundAction,
-    model: BaseModel,
-):
-    create_graphs = fn_obsdict_to_graph(model)
-    g_to_obsdata = fn_graph_to_obsdata(model)
-    g, _ = create_graphs(
-        obs,
-    )
-    o = g_to_obsdata(g)
-    a = to_indexed_action(action, lambda x: g.boolean.factors.index(x), model)
+def fn_to_obsdata(model: BaseModel):
+    create_graphs = fn_groundobs_to_heterograph(model)
+    g_to_obsdata = fn_idx_obs(model)
+    to_indexed_action = fn_to_indexed_action(model)
 
-    # Rendering
-    # dot = to_graphviz(create_render_graph(g.boolean, g.numeric))
-    # global render_index
-    # render_path = pathlib.Path("saved_render")
-    # render_path.mkdir(exist_ok=True)
-    # with open(render_path / f"graph_{render_index}.dot", "w") as f:
-    #     f.write(dot)
-    # render_index += 1
+    def to_obsdata(
+        obs: GroundObs,
+        action: GroundAction,
+    ):
+        g = create_graphs(obs)
+        o = g_to_obsdata(g)
+        a = to_indexed_action(action, lambda x: g.boolean.factors.index(x))
 
-    return o, a
+        # Rendering
+        # dot = to_graphviz(create_render_graph(g.boolean, g.numeric))
+        # global render_index
+        # render_path = pathlib.Path("saved_render")
+        # render_path.mkdir(exist_ok=True)
+        # with open(render_path / f"graph_{render_index}.dot", "w") as f:
+        #     f.write(dot)
+        # render_index += 1
+
+        return o, a
+
+    return to_obsdata
 
 
-def get_rnn_agent(model: BaseModel):
-    n_types = model.num_types
-    n_relations = model.num_fluents
-    n_actions = model.num_actions
-
+def get_rnn_agent(model: BaseModel, device: str = "cpu"):
     params = GNNParams(
         layers=4,
         embedding_dim=16,
@@ -190,26 +202,15 @@ def get_rnn_agent(model: BaseModel):
         action_mode=ActionMode.NODE_THEN_ACTION,
     )
 
-    config = AgentConfig(
-        n_types,
-        n_relations,
-        n_actions,
+    return agent_from_model(
+        RecurrentGraphAgent,
+        model,
         params,
+        device=device,
     )
-
-    agent = RecurrentGraphAgent(
-        config,
-    )
-
-    return agent
 
 
 def get_agent(model: BaseModel, device: str = "cpu"):
-    n_types = model.num_types
-    n_relations = model.num_fluents
-    n_actions = model.num_actions
-    arity = max_arity(model)
-
     params = GNNParams(
         layers=4,
         embedding_dim=16,
@@ -218,20 +219,12 @@ def get_agent(model: BaseModel, device: str = "cpu"):
         action_mode=ActionMode.NODE_THEN_ACTION,
     )
 
-    config = AgentConfig(
-        n_types,
-        n_relations,
-        n_actions,
-        hyper_params=params,
-        arity=arity,
-        remove_false_fluents=True,
+    return agent_from_model(
+        GraphAgent,
+        model,
+        params,
+        device=device,
     )
-
-    agent = GraphAgent(config, None)
-
-    agent = agent.to(device)
-
-    return agent
 
 
 # def get_rddl_data(data: Recording, model: BaseModel, grounded_model: BaseGroundedModel):
@@ -294,20 +287,30 @@ def test_expert(
 
 def test_saved_data(domain: str, data_path: str):
     datafile = Path(f"{data_path}/{domain}/combined_data.json").expanduser()
-    instance = 1
+    instance = "1"
     use_rnn = False
     seed = 1
     device = "cuda:0" if th.cuda.is_available() else "cpu"
-    num_gradient_steps = 500
-    env_id = register_pomdp_env() if use_rnn else register_env()
+    num_epochs = 500
+    env_id = (
+        register_pomdp_env(domain=domain, instance=instance, remove_false=True)
+        if use_rnn
+        else register_env(domain=domain, instance=instance, remove_false=True)
+    )
 
     output_dir = pathlib.Path("imitation_output")
     output_dir.mkdir(exist_ok=True)
     domain_dir = output_dir / domain
     domain_dir.mkdir(exist_ok=True)
 
-    env: gym.Env = gym.make(env_id, domain=domain, instance=instance, remove_false=True)
+    batch_size = 128
+    shuffle_batch = True
+
+    env: gym.Env = gym.make(
+        env_id,
+    )
     model: BaseModel = env.unwrapped.model
+    assert isinstance(model, BaseModel)
 
     np.random.seed(seed)
     th.manual_seed(seed)
@@ -315,8 +318,8 @@ def test_saved_data(domain: str, data_path: str):
 
     agent = get_rnn_agent(model) if use_rnn else get_agent(model, device)
 
-    # agent, _ = GraphAgent.load_agent(
-    #     "imitation_output/Elevators_MDP_ippc2014/model.pth"
+    # agent, _ = load_agent(
+    #     GraphAgent, "imitation_output/Elevators_MDP_ippc2014/model.pth"
     # )
 
     optimizer = th.optim.AdamW(
@@ -353,13 +356,12 @@ def test_saved_data(domain: str, data_path: str):
     ]
     expert_obs = [wrapper_func(e) for e in expert_obs]
 
+    to_obsdata = fn_to_obsdata(model)
+
     indexed_expert_obs, indexed_expert_action = zip(
-        *[to_obsdata(o, a, model) for o, a in zip(expert_obs, expert_actions)]
+        *[to_obsdata(o, a) for o, a in zip(expert_obs, expert_actions)]
     )
 
-    d = heterostatedata_to_tensors(
-        heterostatedata_from_obslist(indexed_expert_obs), device=device
-    )
     indexed_expert_action = th.as_tensor(
         indexed_expert_action, dtype=th.int64, device=device
     )
@@ -368,16 +370,30 @@ def test_saved_data(domain: str, data_path: str):
     pbar = tqdm()
     grad_norms = deque()
     losses = deque()
-    for _ in range(num_gradient_steps):
-        loss, grad_norm, _ = update(
-            agent, optimizer, indexed_expert_action, d, max_grad_norm=0.5
-        )
-        pbar.update(1)
-        avg_loss = avg_loss + (loss - avg_loss) / 2
-        avg_grad_norm = avg_grad_norm + (grad_norm - avg_grad_norm) / 2
-        grad_norms.append(grad_norm)
-        losses.append(loss)
+
+    for _ in range(num_epochs):
+        if shuffle_batch:
+            perm = th.randperm(len(expert_obs))
+            indexed_expert_obs = [indexed_expert_obs[i] for i in perm]
+            indexed_expert_action = indexed_expert_action[perm]
+            expert_obs = [expert_obs[i] for i in perm]
+
+        for i in range(0, len(indexed_expert_obs), batch_size):
+            obs_minibatch = indexed_expert_obs[i : i + batch_size]
+            action_minibatch = indexed_expert_action[i : i + batch_size]
+            d = heterostatedata_to_tensors(
+                heterostatedata_from_obslist(obs_minibatch), device=device
+            )
+
+            loss, grad_norm, _ = update(
+                agent, optimizer, action_minibatch, d, max_grad_norm=0.5
+            )
+            avg_loss = avg_loss + (loss - avg_loss) / 2
+            avg_grad_norm = avg_grad_norm + (grad_norm - avg_grad_norm) / 2
+            grad_norms.append(grad_norm)
+            losses.append(loss)
         pbar.set_description(f"Loss: {avg_loss:.3f}, Grad Norm: {avg_loss:.3f}")
+        pbar.update(1)
 
     pbar.close()
 
