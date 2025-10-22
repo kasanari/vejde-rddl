@@ -3,7 +3,7 @@ import pathlib
 from pathlib import Path
 import random
 from collections import deque
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any, SupportsFloat
 
 import gymnasium as gym
@@ -12,7 +12,7 @@ import numpy as np
 import torch as th
 from tqdm import tqdm
 
-from regawa import GNNParams, Grounding, ActionMode
+from regawa import GNNParams, Grounding, ActionMode, GroundingRange
 
 from regawa import (
     AgentConfig,
@@ -285,7 +285,7 @@ def test_expert(
     return rewards
 
 
-def test_saved_data(domain: str, data_path: str):
+def train_mimic(domain: str, data_path: str):
     datafile = Path(f"{data_path}/{domain}/combined_data.json").expanduser()
     instance = "1"
     use_rnn = False
@@ -305,10 +305,10 @@ def test_saved_data(domain: str, data_path: str):
 
     batch_size = 128
     shuffle_batch = True
+    learning_rate = 1e-3
+    wd = 1e-4
 
-    env: gym.Env = gym.make(
-        env_id,
-    )
+    env: gym.Env = gym.make(env_id)
     model: BaseModel = env.unwrapped.model
     assert isinstance(model, BaseModel)
 
@@ -318,12 +318,12 @@ def test_saved_data(domain: str, data_path: str):
 
     agent = get_rnn_agent(model) if use_rnn else get_agent(model, device)
 
-    # agent, _ = load_agent(
-    #     GraphAgent, "imitation_output/Elevators_MDP_ippc2014/model.pth"
-    # )
+    agent, _ = load_agent(
+        GraphAgent, "imitation_output/Elevators_MDP_ippc2014/model.pth"
+    )
 
     optimizer = th.optim.AdamW(
-        agent.parameters(), lr=0.001, amsgrad=True, weight_decay=0.0
+        agent.parameters(), lr=learning_rate, amsgrad=True, weight_decay=wd
     )
 
     with open(datafile, "r") as f:
@@ -342,7 +342,7 @@ def test_saved_data(domain: str, data_path: str):
     def to_tuple(x: str) -> tuple[str, ...]:
         return tuple(x.split("__"))
 
-    def wrapper_func(x: RecordingObs) -> GroundObs:
+    def wrapper_func(x: RecordingObs) -> Mapping[Grounding, GroundingRange]:
         return remove_false(
             convert_state_to_tuples(
                 x,
@@ -434,4 +434,4 @@ if __name__ == "__main__":
     for domain in domains:
         print(f"Testing {domain}")
         data_path = Path("/storage/GitHub/pyRDDLGym-rl/prost/").expanduser()
-        test_saved_data(domain, data_path)
+        train_mimic(domain, data_path)
