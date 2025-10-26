@@ -207,11 +207,22 @@ class RDDLGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
 
 class RDDLStackingGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
     def __init__(
-        self, domain: str, instance: str, remove_false: bool, **kwargs: dict[str, Any]
+        self,
+        domain: str,
+        instance: str,
+        remove_false: bool,
+        remove_none: bool,
+        add_actions_to_obs: bool,
+        **kwargs: dict[str, Any],
     ) -> None:
         super().__init__()
         env, model, grounded_model = make_env(
-            domain, instance, remove_false=remove_false, stacking=True
+            domain,
+            instance,
+            remove_false=remove_false,
+            add_actions_to_obs=add_actions_to_obs,
+            remove_none=remove_none,
+            stacking=True,
         )
         self.env = env
         self.observation_space = env.observation_space
@@ -299,6 +310,8 @@ def register_pomdp_env(
     domain: str,
     instance: str,
     remove_false: bool = False,
+    add_actions_to_obs: bool = False,
+    remove_none: bool = True,
 ):
     env_id = f"RDDLPOMDPGraphEnv-{Path(domain).name}__{Path(instance).name}-v0"
     env_func = partial(
@@ -306,6 +319,8 @@ def register_pomdp_env(
         domain=domain,
         instance=instance,
         remove_false=remove_false,
+        add_actions_to_obs=add_actions_to_obs,
+        remove_none=remove_none,
     )
     gymnasium.register(
         id=env_id,
