@@ -141,11 +141,12 @@ def test_imitation_rnn(
         domain=domain,
         instance=instance,
         remove_false=remove_false,
+        add_actions_to_obs=True,
     )
     env: gym.Env[Dict, MultiDiscrete] = gym.make(env_id)
 
     params = GNNParams(
-        layers=3,
+        layers=4,
         embedding_dim=embedding_dim,
         activation=th.nn.Mish(),
         aggregation="max",
@@ -217,5 +218,5 @@ def iteration(i, env, agent, optimizer, seed: int):
 
 if __name__ == "__main__":
     time = datetime.now()
-    test_imitation_rnn(ActionMode.ACTION_THEN_NODE, 50, 16)
+    test_imitation_rnn(ActionMode.NODE_THEN_ACTION, 50, 16, remove_false=True)
     print("Total time:", datetime.now() - time)
