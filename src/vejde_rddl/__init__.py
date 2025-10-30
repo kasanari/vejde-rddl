@@ -11,6 +11,12 @@ from pyRDDLGym.core.parser.parser import RDDLParser
 from pyRDDLGym.core.parser.reader import RDDLReader
 from rddlrepository import RDDLRepoManager
 from regawa.data import HeteroObsData
+
+from regawa.wrappers.add_time_wrapper import AddTimeWrapper
+from regawa.wrappers.alt_stacking_wrapper import StackingWrapper
+from regawa.wrappers.cumulative_obs_wrapper import (
+    CumulativeObsWrapper,
+)
 from .rddl_default_invalid_action_wrapper import (
     RDDLDefaultInvalidActions,
 )
@@ -18,7 +24,6 @@ from regawa import GroundedGraphWrapper, StackingGroundedGraphWrapper
 from regawa.wrappers import (
     AddConstantsWrapper,
     IndexActionWrapper,
-    StackingWrapper,
     RemoveFalseWrapper,
     RemoveNoneWrapper,
     IndexObsWrapper,
@@ -60,10 +65,16 @@ def make_env(
     env = RDDLDefaultInvalidActions(env)
     env = RDDLToTuple(env)
     env = AddConstantsWrapper(env, grounded_rddl_model, only_add_on_reset=stacking)
-    env = AddActionWrapper(env) if add_actions_to_obs else env
     env = RemoveFalseWrapper(env) if remove_false else env
     env = RemoveNoneWrapper(env) if remove_none else env
+    # In theory, add action should be applied before remove false (since all actions should be there but set to false)
+    # however, we do not add the false actions so for practical purposes it is placed here to operate on smaller obs
+    env = AddActionWrapper(env) if add_actions_to_obs else env
     env = RDDLConvertEnums(env) if has_enums else env
+
+    env = AddTimeWrapper(env) if stacking else env
+    env = CumulativeObsWrapper(env) if stacking else env
+
     env = StackingWrapper(env) if stacking else env
     env = (
         GroundedGraphWrapper(
