@@ -55,6 +55,7 @@ def make_env(
     remove_false: bool = False,
     remove_none: bool = True,
     add_actions_to_obs: bool = False,
+    add_initial_state: bool = False,
     stacking: bool = False,
     add_render_graph_to_info: bool = True,
 ):
@@ -69,7 +70,9 @@ def make_env(
     env = RemoveNoneWrapper(env) if remove_none else env
 
     # Add initial state values from the instance file
-    env = RDDLAddInitState(env, only_add_on_reset=stacking)
+    env = (
+        RDDLAddInitState(env, only_add_on_reset=stacking) if add_initial_state else env
+    )
 
     # remove fluents that are false
     # This has to be after RDDLAddInitState, since initial values may be false
@@ -101,11 +104,15 @@ def make_env(
     # converts to a bipartite graph
     env = (
         GroundedGraphWrapper(
-            env, model=model, add_render_graph_to_info=add_render_graph_to_info
+            env,
+            model=model,
+            add_render_graph_to_info=add_render_graph_to_info,
         )
         if not stacking
         else StackingGroundedGraphWrapper(
-            env, model=model, add_render_graph_to_info=add_render_graph_to_info
+            env,
+            model=model,
+            add_render_graph_to_info=add_render_graph_to_info,
         )
     )
     # converts actions to indices
@@ -122,6 +129,7 @@ class RDDLCycleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
         instance: list[str],
         remove_false: bool = False,
         remove_none: bool = False,
+        add_initial_state: bool = False,
         optimize: bool = False,
         stacking: bool = False,
         add_actions_to_obs: bool = False,
@@ -151,6 +159,7 @@ class RDDLCycleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
                 str(i),
                 remove_false=remove_false,
                 remove_none=remove_none,
+                add_initial_state=add_initial_state,
                 stacking=stacking,
                 add_render_graph_to_info=(not optimize),
                 add_actions_to_obs=add_actions_to_obs,
@@ -309,6 +318,7 @@ def register_shuffle_env(
     instance: list[str],
     remove_false: bool = False,
     remove_none: bool = True,
+    add_initial_state: bool = False,
     optimize: bool = False,
     stacking: bool = False,
     add_actions_to_obs: bool = False,
@@ -330,6 +340,7 @@ def register_shuffle_env(
         instance=instance,
         remove_false=remove_false,
         remove_none=remove_none,
+        add_initial_state=add_initial_state,
         optimize=optimize,
         stacking=stacking,
         add_actions_to_obs=add_actions_to_obs,
