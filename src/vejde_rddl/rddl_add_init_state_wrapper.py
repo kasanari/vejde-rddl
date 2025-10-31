@@ -18,7 +18,7 @@ from pyRDDLGym.core.debug.exception import (
     RDDLTypeError,
     RDDLUndefinedCPFError,
     RDDLUndefinedVariableError,
-    RDDLValueOutOfRangeError
+    RDDLValueOutOfRangeError,
 )
 from .rddl_model import RDDLModel
 
@@ -27,88 +27,90 @@ ActType = TypeVar("ActType")
 WrapperObsType = spaces.Dict
 WrapperActType = spaces.Dict
 
+
 def _extract_states(model: RDDLLiftedModel):
-        PRIME = RDDLPlanningModel.NEXT_STATE_SYM
-        
-        # get the information for each state from the domain
-        states, statesranges, nextstates, prevstates = {}, {}, {}, {}
-        for pvar in model.ast.domain.pvariables:
-            if pvar.is_state_fluent():
-                name = pvar.name
-                statesranges[name] = pvar.range
-                nextstates[name] = name + PRIME
-                prevstates[name + PRIME] = name
-                default = model.variable_defaults[name]
-                states[name] = {gname: default
-                                for gname in model.variable_groundings[name]}
-                
-        # update the state values with the values in the instance
-        init_state_info = getattr(model.ast.instance, 'init_state', [])
-        already_set = {}
-        init_state = {}
-        for ((name, params), value) in init_state_info:
-                
-            # check whether name is a valid state-fluent
-            grounded_states = states.get(name, {})
-            if grounded_states is None:
-                raise RDDLUndefinedVariableError(
-                    f'Variable <{name}> referenced in init-state block '
-                    f'is not a valid state-fluent.')
-                    
-            # extract the grounded name and check that parameters are valid
-            if params is not None:
-                params = RDDLPlanningModel.strip_literals(params)
-            gname = RDDLPlanningModel.ground_var(name, params)
-            if gname not in grounded_states:
-                required_types = model.variable_params[name]
-                raise RDDLInvalidObjectError(
-                    f'Parameter(s) {params} of state-fluent <{name}> '
-                    f'declared in the init-state block are not valid, '
-                    f'must be of type(s) {required_types}.')
-                
-            # make sure value is correct type
-            if isinstance(value, str):
-                value = RDDLPlanningModel.strip_literal(value)
-                value_type = model.object_to_type.get(value, None)
-                required_type = statesranges[name]
-                if value_type != required_type:
-                    if value_type is None:
-                        raise RDDLInvalidObjectError(
-                            f'State-fluent <{name}> of range <{required_type}> '
-                            f'is initialized in init-state block with undefined '
-                            f'object <{value}>.')
-                    else:
-                        raise RDDLInvalidObjectError(
-                            f'State-fluent <{name}> of range <{required_type}> '
-                            f'is initialized in init-state block with object '
-                            f'<{value}> of type <{value_type}>.')
-            
-            # make sure no duplication
-            if gname in already_set and already_set[gname] != value:
-                raise RDDLRepeatedVariableError(
-                    f'Multiple distinct initial values assigned to state-fluent <{gname}> '
-                    f'in the instance.')
-            else:
-                already_set[gname] = value
+    PRIME = RDDLPlanningModel.NEXT_STATE_SYM
 
-            init_state[gname] = np.bool_(value) if statesranges[name] == 'bool' else value
-        
+    # get the information for each state from the domain
+    states, statesranges, nextstates, prevstates = {}, {}, {}, {}
+    for pvar in model.ast.domain.pvariables:
+        if pvar.is_state_fluent():
+            name = pvar.name
+            statesranges[name] = pvar.range
+            nextstates[name] = name + PRIME
+            prevstates[name + PRIME] = name
+            default = model.variable_defaults[name]
+            states[name] = {gname: default for gname in model.variable_groundings[name]}
 
-        
-        return init_state
+    # update the state values with the values in the instance
+    init_state_info = getattr(model.ast.instance, "init_state", [])
+    already_set = {}
+    init_state = {}
+    for (name, params), value in init_state_info:
+        # check whether name is a valid state-fluent
+        grounded_states = states.get(name, {})
+        if grounded_states is None:
+            raise RDDLUndefinedVariableError(
+                f"Variable <{name}> referenced in init-state block "
+                f"is not a valid state-fluent."
+            )
+
+        # extract the grounded name and check that parameters are valid
+        if params is not None:
+            params = RDDLPlanningModel.strip_literals(params)
+        gname = RDDLPlanningModel.ground_var(name, params)
+        if gname not in grounded_states:
+            required_types = model.variable_params[name]
+            raise RDDLInvalidObjectError(
+                f"Parameter(s) {params} of state-fluent <{name}> "
+                f"declared in the init-state block are not valid, "
+                f"must be of type(s) {required_types}."
+            )
+
+        # make sure value is correct type
+        if isinstance(value, str):
+            value = RDDLPlanningModel.strip_literal(value)
+            value_type = model.object_to_type.get(value, None)
+            required_type = statesranges[name]
+            if value_type != required_type:
+                if value_type is None:
+                    raise RDDLInvalidObjectError(
+                        f"State-fluent <{name}> of range <{required_type}> "
+                        f"is initialized in init-state block with undefined "
+                        f"object <{value}>."
+                    )
+                else:
+                    raise RDDLInvalidObjectError(
+                        f"State-fluent <{name}> of range <{required_type}> "
+                        f"is initialized in init-state block with object "
+                        f"<{value}> of type <{value_type}>."
+                    )
+
+        # make sure no duplication
+        if gname in already_set and already_set[gname] != value:
+            raise RDDLRepeatedVariableError(
+                f"Multiple distinct initial values assigned to state-fluent <{gname}> "
+                f"in the instance."
+            )
+        else:
+            already_set[gname] = value
+
+        init_state[gname] = np.bool_(value) if statesranges[name] == "bool" else value
+
+    return init_state
+
 
 class RDDLAddInitState(gym.Wrapper[WrapperActType, WrapperObsType, ObsType, ActType]):
-    def __init__(self, env: RDDLEnv) -> None:
+    def __init__(self, env: RDDLEnv, only_add_on_reset: bool = False) -> None:
         super().__init__(env)
 
         rddl_model = RDDLModel(env.unwrapped.model)
-        
-        #init_state_info = getattr(rddl_model.model.ast.instance, 'init_state', [])
-        
+
+        # init_state_info = getattr(rddl_model.model.ast.instance, 'init_state', [])
+
         self.rddl_model = rddl_model
-        self.init_state_info = _extract_states(rddl_model.model)
-
-
+        self.init_state = _extract_states(rddl_model.model)
+        self.only_add_on_reset = only_add_on_reset
 
     def step(
         self,
@@ -120,14 +122,16 @@ class RDDLAddInitState(gym.Wrapper[WrapperActType, WrapperObsType, ObsType, ActT
         bool,
         dict[str, Any],
     ]:
-        return self.env.step(actions)
+        obs, r, term, trunc, info = self.env.step(actions)
+        new_obs = obs if self.only_add_on_reset else self.init_state | obs
 
+        return new_obs, r, term, trunc, info
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[WrapperObsType, dict[str, Any]]:
         obs, info = self.env.reset(seed=seed)
-        
-        new_obs = obs | self.init_state_info
+
+        new_obs = self.init_state | obs
 
         return new_obs, info
