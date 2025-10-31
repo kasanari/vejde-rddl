@@ -63,27 +63,42 @@ def make_env(
     has_enums = len(rddl_model.enum_types) > 0
     model = RDDLModel(rddl_model)
     grounded_rddl_model = RDDLGroundedModel(rddl_model, remove_false=remove_false)
-    env = (
-        RemoveNoneWrapper(env) if remove_none else env
-    )  # Do this first to reduce size early, and avoid init values being set to None
+
+    # Remove groundings with None values
+    # Do this first to reduce size early, and avoid init values being set to None
+    env = RemoveNoneWrapper(env) if remove_none else env
+
+    # Add initial state values from the instance file
     env = RDDLAddInitState(env, only_add_on_reset=stacking)
-    env = (
-        RemoveFalseWrapper(env) if remove_false else env
-    )  # This has to be after RDDLAddInitState, since initial values may be false
+
+    # remove fluents that are false
+    # This has to be after RDDLAddInitState, since initial values may be false
+    env = RemoveFalseWrapper(env) if remove_false else env
+
+    # ensures invalid actions are set to a default value
     env = RDDLDefaultInvalidActions(env)
+
+    # converts to tuple groundings
     env = RDDLToTuple(env)
-    env = AddConstantsWrapper(
-        env, grounded_rddl_model, only_add_on_reset=stacking
-    )  # we do not bother with false constants so it is after remove false
+
+    # adds non-fluent groundings from the instance file
+    # we do not bother with false constants so it is after remove false
+    env = AddConstantsWrapper(env, grounded_rddl_model, only_add_on_reset=stacking)
     # In theory, add action should be applied before remove false (since all actions should be there but set to false)
     # however, we do not add the false actions so for practical purposes it is placed here to operate on smaller obs
     env = AddActionWrapper(env) if add_actions_to_obs else env
     env = RDDLConvertEnums(env) if has_enums else env
 
+    # adds the current time to all groundings
     env = AddTimeWrapper(env) if stacking else env
+
+    # maintains a cumulative observation of all past observations
     env = CumulativeObsWrapper(env) if stacking else env
 
+    # groups observations by their grounding, creating stacks of unique times/values
     env = StackingWrapper(env) if stacking else env
+
+    # converts to a bipartite graph
     env = (
         GroundedGraphWrapper(
             env, model=model, add_render_graph_to_info=add_render_graph_to_info
@@ -93,7 +108,9 @@ def make_env(
             env, model=model, add_render_graph_to_info=add_render_graph_to_info
         )
     )
+    # converts actions to indices
     env = IndexActionWrapper(env, model)
+    # converts graph to indices/obsdata
     env = IndexObsWrapper(env, model, stacking)
     return env, grounded_rddl_model, model
 
