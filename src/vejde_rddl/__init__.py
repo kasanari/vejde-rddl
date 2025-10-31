@@ -14,6 +14,7 @@ from regawa.data import HeteroObsData
 
 from regawa.wrappers.add_time_wrapper import AddTimeWrapper
 from regawa.wrappers.alt_stacking_wrapper import StackingWrapper
+from .rddl_add_init_state_wrapper import RDDLAddInitState
 from regawa.wrappers.cumulative_obs_wrapper import (
     CumulativeObsWrapper,
 )
@@ -62,6 +63,7 @@ def make_env(
     has_enums = len(rddl_model.enum_types) > 0
     model = RDDLModel(rddl_model)
     grounded_rddl_model = RDDLGroundedModel(rddl_model, remove_false=remove_false)
+    env = RDDLAddInitState(env) if stacking else env
     env = RDDLDefaultInvalidActions(env)
     env = RDDLToTuple(env)
     env = AddConstantsWrapper(env, grounded_rddl_model, only_add_on_reset=stacking)

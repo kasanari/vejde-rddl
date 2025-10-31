@@ -42,7 +42,9 @@ class RDDLDefaultInvalidActions(
         bool,
         dict[str, Any],
     ]:
-        is_valid = self.env.sampler.check_action_preconditions(actions, silent=True)
+        is_valid = self.env.unwrapped.sampler.check_action_preconditions(
+            actions, silent=True
+        )
 
         actions = actions if is_valid else {}
 
