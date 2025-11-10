@@ -2,6 +2,7 @@ import pytest
 
 import regawa.model.utils as utils
 from regawa import BaseModel
+from regawa.model.null import NullConst
 from vejde_rddl import RDDLModel
 from vejde_rddl.rddl_grounded_model import RDDLGroundedModel
 
@@ -47,7 +48,7 @@ def test_variable_range(model: BaseModel):
     assert f_r("light") is bool
     assert f_r("PAYOUT") is float
     assert f_r("CONNECTED") is bool
-    assert f_r("None") is bool
+    assert f_r(NullConst.action) is bool
 
 
 def test_fluent_params(model: BaseModel):
@@ -59,7 +60,7 @@ def test_fluent_params(model: BaseModel):
     assert f_p("light") == ("machine",)
     assert f_p("PAYOUT") == ("machine",)
     assert f_p("CONNECTED") == ("button", "machine")
-    assert f_p("None") == ()
+    assert f_p(NullConst.action) == ()
 
 
 def test_fluent_param(model: BaseModel):
@@ -120,7 +121,7 @@ def test_type_to_idx(model: BaseModel):
     for t in model.types:
         assert model.type_to_idx(t) is not None
 
-    assert model.type_to_idx("None") == 0
+    assert model.type_to_idx(NullConst.type) == 0
 
 
 def test_idx_to_type(model: BaseModel):
@@ -132,7 +133,7 @@ def test_idx_to_type(model: BaseModel):
     for i in range(model.num_types):
         assert model.idx_to_type(i) is not None
 
-    assert model.idx_to_type(0) == "None"
+    assert model.idx_to_type(0) == NullConst.type
 
 
 def test_rel_to_idx(model: BaseModel):
@@ -144,7 +145,7 @@ def test_rel_to_idx(model: BaseModel):
     for r in model.fluents:
         assert model.fluent_to_idx(r) is not None
 
-    assert model.fluent_to_idx("None") == 0
+    assert model.fluent_to_idx(NullConst.action) == 0
 
 
 def test_idx_to_relation(model: BaseModel):
@@ -156,21 +157,21 @@ def test_idx_to_relation(model: BaseModel):
     for i in range(model.num_fluents):
         assert model.idx_to_fluent(i) is not None
 
-    assert model.idx_to_fluent(0) == "None"
+    assert model.idx_to_fluent(0) == NullConst.action
 
 
 def test_idx_to_action(model: BaseModel):
     for i in range(model.num_actions):
         assert model.idx_to_action(i) is not None
 
-    assert model.idx_to_action(0) == "None"
+    assert model.idx_to_action(0) == NullConst.action
 
 
 def test_action_to_idx(model: BaseModel):
     for a in model.action_fluents:
         assert model.action_to_idx(a) is not None
 
-    assert model.action_to_idx("None") == 0
+    assert model.action_to_idx(NullConst.action) == 0
 
 
 def test_arity(model: BaseModel):

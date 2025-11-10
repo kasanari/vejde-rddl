@@ -15,6 +15,7 @@ from gymnasium.spaces import Dict, MultiDiscrete
 import regawa.wrappers.gym_utils as model_utils
 from regawa.policy import ActionMode, AgentConfig, RecurrentGraphAgent, GNNParams
 from regawa.data import heterostatedata_to_tensors
+from rddlgraphwrapper.src.regawa.model.null import NullConst
 from vejde_rddl import register_pomdp_env as register_env
 from regawa.rl.util import evaluate, rollout, save_eval_data, update
 
@@ -89,7 +90,7 @@ def policy(
     ):
         return (1, object_to_idx("green"))
 
-    return (0, object_to_idx("None"))
+    return (0, object_to_idx(NullConst.id))
 
 
 def counting_policy(state):

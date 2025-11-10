@@ -5,6 +5,7 @@ import gymnasium as gym
 import numpy as np
 import pytest
 from gymnasium.utils.env_checker import check_env
+from regawa.model.null import NullConst
 
 from regawa.data.data import HeteroObsData
 from regawa.wrappers.space import HeteroStateSpace
@@ -19,7 +20,7 @@ def counting_policy(state, object_to_idx: Callable[[str], int]) -> list[int]:
     if np.array(state["light___g_m"], dtype=bool).sum() > 3:
         return [1, object_to_idx("green")]
 
-    return [0, object_to_idx("None")]
+    return [0, object_to_idx(NullConst.id)]
 
 
 def policy(state, object_to_idx: Callable[[str], int]) -> list[int]:
@@ -29,7 +30,7 @@ def policy(state, object_to_idx: Callable[[str], int]) -> list[int]:
     if state["enough_light___g_m"]:
         return [1, object_to_idx("green")]
 
-    return [0, object_to_idx("None")]
+    return [0, object_to_idx(NullConst.id)]
 
 
 def do_nothing_policy(state, object_to_idx: Callable[[str], int]) -> list[int]:

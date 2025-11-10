@@ -5,6 +5,7 @@ from itertools import chain
 from pyRDDLGym.core.compiler.model import RDDLLiftedModel  # type: ignore
 
 from regawa import BaseModel
+from regawa.model.null import NullConst
 
 
 class RDDLModel(BaseModel):
@@ -121,7 +122,7 @@ class RDDLModel(BaseModel):
 
         x = chain(y, combined_enum_fluents)
 
-        return tuple(["None"] + sorted(x))
+        return tuple([NullConst.action] + sorted(x))
 
     @cached_property
     def types(self) -> tuple[str, ...]:
@@ -129,7 +130,7 @@ class RDDLModel(BaseModel):
 
     @cached_property
     def _idx_to_type(self) -> list[str]:
-        return ["None"] + sorted(set(self._obj_to_type.values()))
+        return [NullConst.type] + sorted(set(self._obj_to_type.values()))
 
     @cached_property
     def _obj_to_type(self) -> dict[str, str]:
@@ -156,7 +157,7 @@ class RDDLModel(BaseModel):
             for key, value in self.model._variable_ranges.items()  # type: ignore
         }
 
-        variable_ranges["None"] = bool
+        variable_ranges[NullConst.action] = bool
 
         combined_enum_fluents = {f: bool for f in self.combined_enum_fluents}
 
@@ -170,7 +171,7 @@ class RDDLModel(BaseModel):
     @cached_property
     def _variable_params(self) -> dict[str, tuple[str, ...]]:
         variable_params: dict[str, list[str]] = copy(self.model.variable_params)  # type: ignore
-        variable_params["None"] = []
+        variable_params[NullConst.action] = []
 
         combined_enum_fluent_params = {
             f: variable_params[v] for f, v in self.combined_enum_fluents.items()
@@ -206,7 +207,7 @@ class RDDLModel(BaseModel):
         action_fluents = action_fluents | set(new_fluents)
 
         return (
-            ["None"] + sorted(action_fluents)
+            [NullConst.action] + sorted(action_fluents)
             if self.add_null_action
             else sorted(action_fluents)
         )  # type: ignore

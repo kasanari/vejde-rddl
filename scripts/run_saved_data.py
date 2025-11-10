@@ -15,6 +15,7 @@ from regawa import GNNParams, Grounding
 from regawa.policy import AgentConfig, GraphAgent, RecurrentGraphAgent
 from regawa.model.base_grounded_model import BaseGroundedModel
 from regawa.model.base_model import BaseModel
+from rddlgraphwrapper.src.regawa.model.null import NullConst
 from vejde_rddl import register_env, register_pomdp_env
 from vejde_rddl.rddl_utils import rddl_ground_to_tuple
 from regawa.rl.util import calc_loss, evaluate, update
@@ -97,7 +98,7 @@ def convert_state_to_tuples(d: RecordingObs) -> dict[Grounding, Any]:
 
 
 def convert_actions_to_tuples(d: RecordingAction) -> dict[Grounding, bool]:
-    return convert_state_to_tuples(d) if d else {("None", "None"): True}
+    return convert_state_to_tuples(d) if d else {(NullConst.id, NullConst.type): True}
 
 
 def from_index_action(
@@ -109,7 +110,7 @@ def from_index_action(
 def to_indexed_action(
     action: GroundAction, obj_to_idx: Callable[[str], int], model: BaseModel
 ) -> IndexedAction:
-    action = list(action.keys())[0] if action else ("None", "None")
+    action = list(action.keys())[0] if action else (NullConst.id, NullConst.type)
     a = from_dict_action(action, lambda x: model.action_fluents.index(x), obj_to_idx)
     return a
 

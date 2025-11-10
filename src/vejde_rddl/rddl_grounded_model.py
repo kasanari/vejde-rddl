@@ -39,7 +39,7 @@ class RDDLGroundedModel(BaseGroundedModel):
 
     @cached_property
     def action_groundings(self) -> tuple[Grounding, ...]:
-        return get_groundings(self.model, self.model.action_fluents) | {"None"}  # type: ignore
+        return get_groundings(self.model, self.model.action_fluents)  # type: ignore
 
     @cached_property
     def constant_groundings(self) -> tuple[Grounding, ...]:
