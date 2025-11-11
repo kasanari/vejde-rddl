@@ -25,7 +25,7 @@ from regawa.policy.recurrent_gnn_agent import RecurrentGraphAgent
 from regawa import agent_from_model
 from regawa.wrappers.grounding_utils import fn_objects_with_type
 from regawa.policy.load import load_agent
-from rddlgraphwrapper.src.regawa.model.null import NullConst
+from regawa.model.null import NullConst
 from vejde_rddl import register_env, register_pomdp_env
 from vejde_rddl.rddl_utils import rddl_ground_to_tuple
 from regawa.rl.util import calc_loss, evaluate, save_eval_data, update
@@ -117,14 +117,13 @@ def convert_state_to_tuples(
     return {converter_func(k): v for k, v in d.items()}
 
 
+NULL_ACTION = (NullConst.action, NullConst.id)
+
+
 def convert_actions_to_tuples(
     d: RecordingAction, converter_func: Callable[[str], Grounding]
 ) -> dict[Grounding, bool]:
-    return (
-        convert_state_to_tuples(d, converter_func)
-        if d
-        else {(NullConst.id, NullConst.type): True}
-    )
+    return convert_state_to_tuples(d, converter_func) if d else {NULL_ACTION: True}
 
 
 def ensure_tuple(x: tuple[str, ...]) -> tuple[str, ...]:
@@ -142,10 +141,8 @@ def fn_to_indexed_action(model: BaseModel):
         action: GroundAction,
         obj_to_idx: Callable[[str], int],
     ) -> IndexedAction:
-        action = list(action.keys())[0] if action else (NullConst.id, NullConst.type)
-        a = from_dict_action(
-            action, lambda x: model.action_fluents.index(x), obj_to_idx
-        )
+        x = list(action.keys())[0] if action else NULL_ACTION
+        a = from_dict_action(x, lambda x: model.action_fluents.index(x), obj_to_idx)
         return a
 
     return to_indexed_action
@@ -343,6 +340,9 @@ def train_mimic(domain: str, data_path: str):
     expert_obs = [x["state"] for x in expert_data]
 
     def to_tuple(x: str) -> tuple[str, ...]:
+        if x == "None__None":
+            x = f"{NullConst.action}__{NullConst.id}"
+
         return tuple(x.split("__"))
 
     def wrapper_func(x: RecordingObs) -> Mapping[Grounding, GroundingRange]:
