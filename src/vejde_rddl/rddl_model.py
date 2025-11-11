@@ -171,7 +171,7 @@ class RDDLModel(BaseModel):
     @cached_property
     def _variable_params(self) -> dict[str, tuple[str, ...]]:
         variable_params: dict[str, list[str]] = copy(self.model.variable_params)  # type: ignore
-        variable_params[NullConst.action] = []
+        variable_params[NullConst.action] = [NullConst.type]
 
         combined_enum_fluent_params = {
             f: variable_params[v] for f, v in self.combined_enum_fluents.items()
