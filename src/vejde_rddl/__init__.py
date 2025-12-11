@@ -185,8 +185,10 @@ class RDDLCycleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
 
     def step(
         self, action: MultiDiscrete
-    ) -> tuple[Dict, SupportsFloat, bool, bool, dict[str, Any]]:
-        return self.env.step(action)
+    ) -> tuple[HeteroObsData, SupportsFloat, bool, bool, dict[str, Any]]:
+        obs, reward, term, trunc, info = self.env.step(action)
+        info["current_instance"] = self.instances[self.current_instance]
+        return obs, reward, term, trunc, info
 
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
@@ -202,7 +204,11 @@ class RDDLCycleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
         self.current_instance = current_instance
         self.index = current_idx
 
-        return self.env.reset(seed=seed, options=options)
+        obs, info = self.env.reset(seed=seed, options=options)
+
+        info["current_instance"] = self.instances[self.current_instance]
+
+        return obs, info
 
     def render(self) -> str:
         return self.env.render()
@@ -258,6 +264,7 @@ class RDDLStackingGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
         remove_false: bool,
         remove_none: bool,
         add_actions_to_obs: bool,
+        add_initial_state: bool,
         **kwargs: dict[str, Any],
     ) -> None:
         super().__init__()
@@ -268,6 +275,7 @@ class RDDLStackingGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
             add_actions_to_obs=add_actions_to_obs,
             remove_none=remove_none,
             stacking=True,
+            add_initial_state=add_initial_state,
         )
         self.env = env
         self.observation_space = env.observation_space
@@ -359,6 +367,7 @@ def register_pomdp_env(
     remove_false: bool = False,
     add_actions_to_obs: bool = False,
     remove_none: bool = True,
+    add_initial_state: bool = False,
 ):
     env_id = f"RDDLPOMDPGraphEnv-{Path(domain).name}__{Path(instance).name}-v0"
     env_func = partial(
@@ -368,6 +377,7 @@ def register_pomdp_env(
         remove_false=remove_false,
         add_actions_to_obs=add_actions_to_obs,
         remove_none=remove_none,
+        add_initial_state=add_initial_state,
     )
     gymnasium.register(
         id=env_id,
