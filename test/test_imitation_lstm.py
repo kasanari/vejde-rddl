@@ -15,7 +15,7 @@ from gymnasium.spaces import Dict, MultiDiscrete
 import regawa.wrappers.gym_utils as model_utils
 from regawa.policy import ActionMode, AgentConfig, RecurrentGraphAgent, GNNParams
 from regawa.data import heterostatedata_to_tensors
-from rddlgraphwrapper.src.regawa.model.null import NullConst
+from regawa.model.null import NullConst
 from vejde_rddl import register_pomdp_env as register_env
 from regawa.rl.util import evaluate, rollout, save_eval_data, update
 
@@ -142,6 +142,7 @@ def test_imitation_rnn(
         domain=domain,
         instance=instance,
         remove_false=remove_false,
+        # add_none_object=True,
         add_actions_to_obs=True,
     )
     env: gym.Env[Dict, MultiDiscrete] = gym.make(env_id)
@@ -150,14 +151,14 @@ def test_imitation_rnn(
         layers=4,
         embedding_dim=embedding_dim,
         activation=th.nn.Mish(),
-        aggregation="max",
+        aggregation="sum",
         action_mode=action_mode,
     )
 
     agent = agent_from_env("RecurrentGraphAgent", env, params)
 
     optimizer = th.optim.AdamW(
-        agent.parameters(), lr=0.01, amsgrad=True, weight_decay=0.01
+        agent.parameters(), lr=0.01, amsgrad=True, weight_decay=0.0
     )
 
     data = [evaluate(env, agent, 0) for i in range(10)]
@@ -184,7 +185,7 @@ def test_imitation_rnn(
         avg_reward,
     )
 
-    max_loss = 8e-6
+    max_loss = 1e-6
     assert losses[-1] < max_loss, "Loss was too high: expected less than %s, got %s" % (
         max_loss,
         losses[-1],
@@ -209,7 +210,7 @@ def iteration(i, env, agent, optimizer, seed: int):
     )
     time_taken = datetime.now() - time
     print(
-        f"{i} Loss: {loss:.3f}, Grad Norm: {grad_norm:.3f}, Length: {length}",
+        f"{i} Loss: {loss:.6f}, Grad Norm: {grad_norm:.3f}, Length: {length}",
         "Time: ",
         time_taken.microseconds,
         "us",
@@ -219,5 +220,5 @@ def iteration(i, env, agent, optimizer, seed: int):
 
 if __name__ == "__main__":
     time = datetime.now()
-    test_imitation_rnn(ActionMode.NODE_THEN_ACTION, 50, 16, remove_false=True)
+    test_imitation_rnn(ActionMode.NODE_THEN_ACTION, 40, 16, remove_false=True)
     print("Total time:", datetime.now() - time)

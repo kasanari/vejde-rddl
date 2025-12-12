@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from datetime import datetime
 import logging
 import random
 import time
@@ -81,7 +82,11 @@ def test_imitation(
     render_logfile = logging.FileHandler("test_imitation_mdp_render.log", mode="w")
     render_logger.addHandler(render_logfile)
 
-    env_id = register_env(domain=domain, instance=instance, remove_false=remove_false)
+    env_id = register_env(
+        domain=domain,
+        instance=instance,
+        remove_false=remove_false,
+    )
     env = gym.make(
         env_id,
     )
@@ -114,11 +119,14 @@ def test_imitation(
         for i in range(iterations)
     ]
 
-    losses, norms, per_param_grad = zip(*data)
+    losses, norms, per_param_grad, times = zip(*data)
     # reshape
 
     plot_loses_grads(losses, norms, action_mode)
     plot_per_grad_norms(per_param_grad, action_mode)
+
+    avg_time = sum(t.microseconds for t in times) / len(times)
+    print(f"Average time per iteration: {avg_time} us")
 
     max_loss = 1e-6
     assert losses[-1] < max_loss, "Loss was too high: expected less than %s, got %s" % (
@@ -148,7 +156,7 @@ def test_imitation(
 
 def iteration(i, env, agent, optimizer, vf_agent, vf_optimizer, seed: int):
     r, length = rollout(env, seed, policy, 4.0)
-
+    time = datetime.now()
     # save_rollout(r, f"rollouts/rollout_{i}.json")
     # saved_r = load_rollout(f"rollouts/rollout_{i}.json")
     # compare_rollouts(r, saved_r)
@@ -157,13 +165,18 @@ def iteration(i, env, agent, optimizer, vf_agent, vf_optimizer, seed: int):
     actions = th.atleast_2d(th.as_tensor(r.actions, dtype=th.int64))
     loss, grad_norm, per_param_grad = update(agent, optimizer, actions, b)
     vf_loss, vf_grad_norm = update_vf_agent(vf_agent, vf_optimizer, b, r.rewards)
+    time_taken = datetime.now() - time
     print(
-        f"{i} Loss: {loss:.6f}, Grad Norm: {grad_norm:.3f}, Length: {length}, VF Loss: {vf_loss:.3f}, VF Grad Norm: {vf_grad_norm:.3f}"
+        f"{i} Loss: {loss:.6f}, Grad Norm: {grad_norm:.3f}, Length: {length}, VF Loss: {vf_loss:.3f}, VF Grad Norm: {vf_grad_norm:.3f}",
+        "Time: ",
+        time_taken.microseconds,
+        "us",
     )
-    return loss, grad_norm, per_param_grad
+    return loss, grad_norm, per_param_grad, time_taken
 
 
 if __name__ == "__main__":
     t = time.time()
-    test_imitation(ActionMode.ACTION_THEN_NODE, 35, 16)
+    test_imitation(ActionMode.ACTION_THEN_NODE, 30, 16)
+    # test_imitation(ActionMode.NODE_THEN_ACTION, 40, 16)
     print("Time: ", time.time() - t)
