@@ -5,7 +5,6 @@ from typing import Any, TypeVar
 import gymnasium as gym
 from gymnasium import spaces
 from pyRDDLGym import RDDLEnv
-
 from regawa import Grounding
 
 from .rddl_model import RDDLModel

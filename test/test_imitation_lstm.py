@@ -1,23 +1,21 @@
-from collections.abc import Callable
-from datetime import datetime
 import json
 import logging
 import random
+from collections.abc import Callable
+from datetime import datetime
 
 import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
-from regawa import agent_from_env
 import torch as th
 from gymnasium.spaces import Dict, MultiDiscrete
-
-import regawa.wrappers.gym_utils as model_utils
-from regawa.policy import ActionMode, AgentConfig, RecurrentGraphAgent, GNNParams
+from regawa import agent_from_env
 from regawa.data import heterostatedata_to_tensors
 from regawa.model.null import NullConst
-from vejde_rddl import register_pomdp_env as register_env
+from regawa.policy import ActionMode, GNNParams
 from regawa.rl.util import evaluate, rollout, save_eval_data, update
+from vejde_rddl import register_pomdp_env as register_env
 
 
 class Serializer(json.JSONEncoder):
@@ -66,9 +64,7 @@ def knowledge_graph_policy(obs):
 
     obj = obs["edge_index"][obj][0]
 
-    button = next(
-        p for p, c in obs["edge_index"] if c == obj and not ((p, c) == (obj, obj))
-    )
+    button = next(p for p, c in obs["edge_index"] if c == obj and (p, c) != (obj, obj))
 
     return [1, button]
 
@@ -162,16 +158,16 @@ def test_imitation_rnn(
     )
 
     data = [evaluate(env, agent, 0) for i in range(10)]
-    rewards, *_ = zip(*data)
+    rewards, *_ = zip(*data, strict=False)
     logger.info("Sum Reward Before Training: %s", np.mean([np.sum(r) for r in rewards]))
 
     # num_seeds = 10
 
     data = [iteration(i, env, agent, optimizer, 0) for i in range(iterations)]
-    losses, norms, per_param_grad, times = zip(*data)
+    losses, norms, per_param_grad, times = zip(*data, strict=False)
 
     data = [evaluate(env, agent, 0) for i in range(3)]
-    rewards, *_ = zip(*data)
+    rewards, *_ = zip(*data, strict=False)
     avg_reward = np.mean([np.sum(r) for r in rewards])
 
     avg_time = sum(t.microseconds for t in times) / len(times)

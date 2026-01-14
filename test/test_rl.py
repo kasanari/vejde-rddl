@@ -1,5 +1,5 @@
-from regawa.rl import train, Args
-from regawa import GNNParams, ActionMode
+from regawa import ActionMode, GNNParams
+from regawa.rl import Args, train
 from torch import nn
 from vejde_rddl import register_env
 

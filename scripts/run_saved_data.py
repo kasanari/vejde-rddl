@@ -9,18 +9,18 @@ import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 import torch as th
-from tqdm import tqdm
-
 from regawa import GNNParams, Grounding
-from regawa.policy import AgentConfig, GraphAgent, RecurrentGraphAgent
 from regawa.model.base_grounded_model import BaseGroundedModel
 from regawa.model.base_model import BaseModel
-from rddlgraphwrapper.src.regawa.model.null import NullConst
-from vejde_rddl import register_env, register_pomdp_env
-from vejde_rddl.rddl_utils import rddl_ground_to_tuple
+from regawa.policy import AgentConfig, GraphAgent, RecurrentGraphAgent
 from regawa.rl.util import calc_loss, evaluate, update
 from regawa.wrappers.render_utils import create_render_graph, to_graphviz
 from regawa.wrappers.utils import from_dict_action, object_list
+from tqdm import tqdm
+from vejde_rddl import register_env, register_pomdp_env
+from vejde_rddl.rddl_utils import rddl_ground_to_tuple
+
+from rddlgraphwrapper.src.regawa.model.null import NullConst
 
 RecordingObs = dict[str, Any]
 RecordingAction = dict[str, int]
@@ -42,7 +42,7 @@ def save_sorted_losses(
 ):
     loss_per_obs = []
     for i, (expert_a, d, o) in enumerate(
-        zip(expert_actions[0], indexed_expert_obs, expert_obs[0])
+        zip(expert_actions[0], indexed_expert_obs, expert_obs[0], strict=False)
     ):
         s = heterostatedata_to_tensors(heterostatedata_from_obslist([d]))
         g = to_graph(o, model)
@@ -59,7 +59,7 @@ def save_sorted_losses(
 
         weight_by_factor = {
             k: f"{float(v):0.3f}"
-            for k, v in zip(g.factor_labels, factor_weights)
+            for k, v in zip(g.factor_labels, factor_weights, strict=False)
             if v > 0.001
         }
 
@@ -68,6 +68,7 @@ def save_sorted_losses(
             for k, v in zip(
                 model.action_fluents,
                 p_a.detach().squeeze().numpy(),
+                strict=False,
             )
             if v > 0.001
         }
@@ -291,7 +292,7 @@ def test_saved_data():
         agent.parameters(), lr=0.01, amsgrad=True, weight_decay=0.01
     )
 
-    with open(datafile, "r") as f:
+    with open(datafile) as f:
         data = json.load(f)
 
     expert_rewards = test_expert(env, data, seed, model, strict=False)
@@ -309,9 +310,10 @@ def test_saved_data():
     indexed_expert_obs, indexed_expert_action = zip(
         *[
             to_obsdata(o, a, model, grounded_model)
-            for e_o, e_a in zip(expert_obs, expert_actions)
-            for o, a in zip(e_o, e_a)
-        ]
+            for e_o, e_a in zip(expert_obs, expert_actions, strict=False)
+            for o, a in zip(e_o, e_a, strict=False)
+        ],
+        strict=False,
     )
 
     # batch_inds = list(range(0, len(expert_obs)))

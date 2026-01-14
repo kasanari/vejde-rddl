@@ -3,7 +3,6 @@ from functools import cache, cached_property
 from itertools import chain
 
 from pyRDDLGym.core.compiler.model import RDDLLiftedModel  # type: ignore
-
 from regawa import BaseModel
 from regawa.model.null import NullConst
 

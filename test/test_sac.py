@@ -1,5 +1,5 @@
-from regawa.rl.sac_gnn import train, SACArgs
-from regawa import GNNParams, ActionMode
+from regawa import ActionMode, GNNParams
+from regawa.rl.sac_gnn import SACArgs, train
 from torch import nn
 from vejde_rddl import register_env
 

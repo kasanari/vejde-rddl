@@ -1,9 +1,8 @@
 import itertools
 
 import torch as th
+from regawa.embedding import BooleanEmbedder, EmbeddingLayer, RecurrentEmbedder
 from torch import all, as_tensor, isclose
-
-from regawa.embedding import BooleanEmbedder, RecurrentEmbedder, EmbeddingLayer
 
 
 def test_factor_embedding():

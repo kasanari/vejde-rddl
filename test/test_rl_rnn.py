@@ -1,8 +1,9 @@
-from regawa.rl import train, Args
-from regawa import GNNParams, ActionMode
+import gymnasium as gym
+from regawa import ActionMode, GNNParams
+from regawa.rl import Args, train
 from torch import nn
 from vejde_rddl import register_shuffle_env
-import gymnasium as gym
+
 
 def main():
     problem = "tiger"
@@ -45,6 +46,7 @@ def main():
         time += 1
     print(f"Total Reward after {time} steps: {sum_reward}")
     print(stats)
+
 
 if __name__ == "__main__":
     main()

@@ -44,3 +44,34 @@ find-links = [
   "https://data.pyg.org/whl/torch-2.8.0+cu128.html",
   "https://data.pyg.org/whl/torch-2.8.0+cpu.html",
 ]
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+    "RUF",
+    "PL",
+    "PERF",
+    "FLY",
+    "W",
+    #"FBT",
+    "A",
+    "Q",
+    "RET",
+    "ARG",
+    "NPY",
+    "FURB",
+    #"TRY",
+    #"C90",
+]
+ignore = ["B019", "E501", "RUF003", "PLR0913", "PLR0915"]

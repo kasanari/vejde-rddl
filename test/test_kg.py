@@ -1,7 +1,6 @@
 import numpy as np
 
 
-
 def test_kg():
     instance = 1
     domain = "Elevators_MDP_ippc2011"

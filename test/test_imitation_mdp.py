@@ -1,21 +1,19 @@
-from collections.abc import Callable
-from datetime import datetime
 import logging
 import random
 import time
+from collections.abc import Callable
+from datetime import datetime
 
 import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 import torch as th
-import torch.optim as optim
-
-from regawa.policy import ActionMode
-from regawa import GNNParams, GraphAgent
+from regawa import GNNParams, agent_from_env
 from regawa.data import heterostatedata_to_tensors
+from regawa.policy import ActionMode
 from regawa.rl.util import evaluate, rollout, save_eval_data, update, update_vf_agent
-from regawa import agent_from_env
+from torch import optim
 from vejde_rddl import register_env
 
 
@@ -110,7 +108,7 @@ def test_imitation(
     )
 
     data = [evaluate(env, agent, 0) for i in range(10)]
-    rewards, *_ = zip(*data)
+    rewards, *_ = zip(*data, strict=False)
     before_training_rewards = np.mean(np.sum(rewards, axis=1))
     print(before_training_rewards)
 
@@ -119,7 +117,7 @@ def test_imitation(
         for i in range(iterations)
     ]
 
-    losses, norms, per_param_grad, times = zip(*data)
+    losses, norms, per_param_grad, times = zip(*data, strict=False)
     # reshape
 
     plot_loses_grads(losses, norms, action_mode)
@@ -140,7 +138,7 @@ def test_imitation(
 
     # render_logger.setLevel(logging.DEBUG)
     data = [evaluate(env, agent, 0) for i in range(3)]
-    rewards, *_ = zip(*data)
+    rewards, *_ = zip(*data, strict=False)
     avg_reward = np.mean(np.sum(rewards, axis=1))
     print(avg_reward)
 

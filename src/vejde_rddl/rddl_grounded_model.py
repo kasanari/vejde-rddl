@@ -2,10 +2,11 @@ from functools import cache, cached_property
 from typing import Any
 
 import numpy as np
-from pyRDDLGym.core.compiler.model import RDDLLiftedModel  # type: ignore
-from pyRDDLGym.core.compiler.model import RDDLPlanningModel  # type: ignore
-
-from regawa import Grounding, BaseGroundedModel, GroundObs
+from pyRDDLGym.core.compiler.model import (
+    RDDLLiftedModel,  # type: ignore
+    RDDLPlanningModel,  # type: ignore
+)
+from regawa import BaseGroundedModel, Grounding, GroundObs
 
 from .rddl_utils import get_groundings, rddl_ground_to_tuple
 

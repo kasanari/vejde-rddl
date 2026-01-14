@@ -1,41 +1,44 @@
 import json
 import pathlib
-from pathlib import Path
 import random
 from collections import deque
 from collections.abc import Callable, Mapping
+from pathlib import Path
 from typing import Any, SupportsFloat
 
 import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 import torch as th
-from tqdm import tqdm
-
-from regawa import GNNParams, Grounding, ActionMode, GroundingRange
-
 from regawa import (
+    ActionMode,
+    GNNParams,
     GraphAgent,
+    Grounding,
+    GroundingRange,
+    agent_from_model,
 )
-
-from regawa.model import BaseModel
 from regawa.data.data import heterostatedata_from_obslist
 from regawa.data.torch import heterostatedata_to_tensors
-from regawa.policy.recurrent_gnn_agent import RecurrentGraphAgent
-from regawa import agent_from_model
-from regawa.wrappers.grounding_utils import fn_objects_with_type
-from regawa.policy.load import load_agent
+from regawa.model import BaseModel
 from regawa.model.null import NullConst
-from vejde_rddl import register_env, register_pomdp_env
-from vejde_rddl.rddl_utils import rddl_ground_to_tuple
+from regawa.policy.load import load_agent
+from regawa.policy.recurrent_gnn_agent import RecurrentGraphAgent
 from regawa.rl.util import calc_loss, evaluate, save_eval_data, update
-from regawa.wrappers import fn_idx_obs
-from regawa.wrappers import fn_groundobs_to_heterograph
 
 # from regawa.wrappers import fn_objects_with_type
-from regawa.wrappers import remove_false
-from regawa.wrappers import create_render_graph
-from regawa.wrappers import from_dict_action, object_list
+from regawa.wrappers import (
+    create_render_graph,
+    fn_groundobs_to_heterograph,
+    fn_idx_obs,
+    from_dict_action,
+    object_list,
+    remove_false,
+)
+from regawa.wrappers.grounding_utils import fn_objects_with_type
+from tqdm import tqdm
+from vejde_rddl import register_env, register_pomdp_env
+from vejde_rddl.rddl_utils import rddl_ground_to_tuple
 
 RecordingObs = dict[str, Any]
 RecordingAction = dict[str, int]
@@ -60,7 +63,7 @@ def save_sorted_losses(
     loss_per_obs = []
     objects_with_type = fn_objects_with_type(model.fluent_param)
     for i, (expert_a, d, o) in enumerate(
-        zip(expert_actions, indexed_expert_obs, expert_obs)
+        zip(expert_actions, indexed_expert_obs, expert_obs, strict=False)
     ):
         s = heterostatedata_to_tensors(heterostatedata_from_obslist([d]), device=device)
         g = to_graph(o, model)
@@ -77,7 +80,7 @@ def save_sorted_losses(
 
         weight_by_factor = {
             k: f"{float(v):0.3f}"
-            for k, v in zip(g.factor_labels, factor_weights)
+            for k, v in zip(g.factor_labels, factor_weights, strict=False)
             if v > 0.001
         }
 
@@ -86,6 +89,7 @@ def save_sorted_losses(
             for k, v in zip(
                 model.action_fluents,
                 p_a.detach().squeeze().cpu().numpy(),
+                strict=False,
             )
             if v > 0.001
         }
@@ -326,13 +330,13 @@ def train_mimic(domain: str, data_path: str):
         agent.parameters(), lr=learning_rate, amsgrad=True, weight_decay=wd
     )
 
-    with open(datafile, "r") as f:
+    with open(datafile) as f:
         expert_data = json.load(f)
 
     data = [
         evaluate(env, agent, i, deterministic=True, device=device) for i in range(10)
     ]
-    rewards, *_ = zip(*data)
+    rewards, *_ = zip(*data, strict=False)
 
     print(f"Learner average return: {np.mean([sum(r) for r in rewards])}")
 
@@ -362,7 +366,8 @@ def train_mimic(domain: str, data_path: str):
     to_obsdata = fn_to_obsdata(model)
 
     indexed_expert_obs, indexed_expert_action = zip(
-        *[to_obsdata(o, a) for o, a in zip(expert_obs, expert_actions)]
+        *[to_obsdata(o, a) for o, a in zip(expert_obs, expert_actions, strict=False)],
+        strict=False,
     )
 
     indexed_expert_action = th.as_tensor(
@@ -403,7 +408,7 @@ def train_mimic(domain: str, data_path: str):
     data = [
         evaluate(env, agent, i, deterministic=True, device=device) for i in range(10)
     ]
-    rewards, *_ = zip(*data)
+    rewards, *_ = zip(*data, strict=False)
     save_eval_data(data, domain_dir / "eval_data.json")
     print(f"Saved eval data to {domain_dir / 'eval_data.json'}")
 

@@ -1,7 +1,6 @@
 import pytest
-
-import regawa.model.utils as utils
 from regawa import BaseModel
+from regawa.model import utils
 from regawa.model.null import NullConst
 from vejde_rddl import RDDLModel
 from vejde_rddl.rddl_grounded_model import RDDLGroundedModel

@@ -1,25 +1,16 @@
-from functools import cache
-from itertools import chain
 from typing import Any, TypeVar
 
 import gymnasium as gym
-from gymnasium import spaces
 import numpy as np
+from gymnasium import spaces
 from pyRDDLGym import RDDLEnv
-from pyRDDLGym.core.compiler.model import RDDLPlanningModel, RDDLLiftedModel
+from pyRDDLGym.core.compiler.model import RDDLLiftedModel, RDDLPlanningModel
 from pyRDDLGym.core.debug.exception import (
-    print_stack_trace_root as PST,
-    RDDLInvalidExpressionError,
-    RDDLInvalidNumberOfArgumentsError,
     RDDLInvalidObjectError,
-    RDDLMissingCPFDefinitionError,
-    RDDLNotImplementedError,
     RDDLRepeatedVariableError,
-    RDDLTypeError,
-    RDDLUndefinedCPFError,
     RDDLUndefinedVariableError,
-    RDDLValueOutOfRangeError,
 )
+
 from .rddl_model import RDDLModel
 
 ObsType = TypeVar("ObsType")

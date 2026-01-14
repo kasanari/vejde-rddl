@@ -1,7 +1,6 @@
-from regawa import ActionMode, GNNParams, agent_from_env
-from vejde_rddl import register_env, register_pomdp_env
 import gymnasium as gym
 import pytest
+from vejde_rddl import register_env, register_pomdp_env
 
 
 @pytest.fixture(scope="module")
@@ -124,7 +123,6 @@ def test_false_positive(tiger_env):
 
 
 def test_stacking_tiger_env(stacking_tiger_env: gym.Env):
-    import torch as th
     import random
 
     # action_mode = ActionMode.ACTION_THEN_NODE

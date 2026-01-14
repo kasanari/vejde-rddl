@@ -6,10 +6,7 @@ import numpy as np
 import pytest
 from gymnasium.utils.env_checker import check_env
 from regawa.model.null import NullConst
-
-from regawa.data.data import HeteroObsData
-from regawa.wrappers.space import HeteroStateSpace
-from regawa.wrappers.space import FactorGraphSpace
+from regawa.wrappers.space import FactorGraphSpace, HeteroStateSpace
 from vejde_rddl import register_env, register_pomdp_env
 
 

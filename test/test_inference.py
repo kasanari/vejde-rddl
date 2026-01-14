@@ -1,10 +1,9 @@
-from regawa import GNNParams, ActionMode, agent_from_model
-from vejde_rddl import model_from_domain
 import numpy as np
-from regawa.inference import fn_get_agent_output
 import torch as th
-
+from regawa import ActionMode, GNNParams, agent_from_model
+from regawa.inference import fn_get_agent_output
 from regawa.wrappers import remove_false
+from vejde_rddl import model_from_domain
 
 
 def test_inference():
