@@ -24,6 +24,7 @@ regawa = { git = "git+ssh://git@gitr.sys.kth.se/jaknyb/RDDLGraphWrapper"}
 dev = ["pytest>=8.3.5", "matplotlib>=3.10.1", "graphviz>=0.20.3"]
 
 
+
 [tool.uv]
 conflicts = [
   [
@@ -31,15 +32,14 @@ conflicts = [
     { extra = "cu128" },
   ],
   [
-    { extra = "cpu" },
+    { package = "regawa", extra = "cpu" },
     { package = "regawa", extra = "cu128" },
   ],
   [
-    { extra = "cu128" },
+    { package = "regawa", extra = "cu128" },
     { package = "regawa", extra = "cpu" },
   ],
 ]
-
 find-links = [
   "https://data.pyg.org/whl/torch-2.8.0+cu128.html",
   "https://data.pyg.org/whl/torch-2.8.0+cpu.html",
