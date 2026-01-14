@@ -14,8 +14,8 @@ from regawa.model.base_grounded_model import BaseGroundedModel
 from regawa.model.base_model import BaseModel
 from regawa.policy import AgentConfig, GraphAgent, RecurrentGraphAgent
 from regawa.rl.util import calc_loss, evaluate, update
-from regawa.wrappers.render_utils import create_render_graph, to_graphviz
-from regawa.wrappers.utils import from_dict_action, object_list
+from regawa.data.render import create_render_graph, to_graphviz
+from regawa.model import from_dict_action, object_list
 from tqdm import tqdm
 from vejde_rddl import register_env, register_pomdp_env
 from vejde_rddl.rddl_utils import rddl_ground_to_tuple

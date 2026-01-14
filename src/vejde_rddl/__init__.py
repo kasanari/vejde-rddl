@@ -9,7 +9,6 @@ from gymnasium.spaces import Dict, MultiDiscrete
 from pyRDDLGym.core.compiler.model import RDDLLiftedModel
 from pyRDDLGym.core.parser.parser import RDDLParser
 from pyRDDLGym.core.parser.reader import RDDLReader
-from rddlrepository import RDDLRepoManager
 from regawa import GroundedGraphWrapper, StackingGroundedGraphWrapper
 from regawa.data import HeteroObsData
 from regawa.wrappers import (
@@ -133,7 +132,7 @@ class RDDLCycleInstancesEnv(gymnasium.Env[Dict, MultiDiscrete]):
         stacking: bool = False,
         add_actions_to_obs: bool = False,
         seed: int | None = None,
-        **kwargs: dict[str, Any],
+        **_kwargs: dict[str, Any],
     ) -> None:
         super().__init__()
 
@@ -221,7 +220,7 @@ class RDDLGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
         remove_false: bool = False,
         remove_none: bool = False,
         optimize: bool = False,
-        **kwargs: dict[str, Any],
+        **_kwargs: dict[str, Any],
     ) -> None:
         super().__init__()
         env, grounded_model, model = make_env(
@@ -255,7 +254,7 @@ class RDDLGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
         return self.env.render()
 
 
-class RDDLStackingGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
+class RDDLStackingGraphEnv(gymnasium.Env[HeteroObsData, tuple[int, ...]]):
     def __init__(
         self,
         domain: str,
@@ -264,7 +263,7 @@ class RDDLStackingGraphEnv(gymnasium.Env[Dict, MultiDiscrete]):
         remove_none: bool,
         add_actions_to_obs: bool,
         add_initial_state: bool,
-        **kwargs: dict[str, Any],
+        **_kwargs: dict[str, Any],
     ) -> None:
         super().__init__()
         env, model, grounded_model = make_env(

@@ -53,4 +53,4 @@ class RDDLDefaultInvalidActions(
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[WrapperObsType, dict[str, Any]]:
-        return self.env.reset(seed=seed)
+        return self.env.reset(seed=seed, options=options)

@@ -18,7 +18,7 @@ from regawa import (
     GroundingRange,
     agent_from_model,
 )
-from regawa.data.data import heterostatedata_from_obslist
+from regawa.data import heterostatedata_from_obslist
 from regawa.data.torch import heterostatedata_to_tensors
 from regawa.model import BaseModel
 from regawa.model.null import NullConst
@@ -27,12 +27,14 @@ from regawa.policy.recurrent_gnn_agent import RecurrentGraphAgent
 from regawa.rl.util import calc_loss, evaluate, save_eval_data, update
 
 # from regawa.wrappers import fn_objects_with_type
-from regawa.wrappers import (
+from regawa.data import (
     create_render_graph,
     fn_groundobs_to_heterograph,
     fn_idx_obs,
-    from_dict_action,
     object_list,
+)
+from regawa.model import (
+    from_dict_action,
     remove_false,
 )
 from regawa.wrappers.grounding_utils import fn_objects_with_type

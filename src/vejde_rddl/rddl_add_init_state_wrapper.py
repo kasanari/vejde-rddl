@@ -24,6 +24,7 @@ def _extract_states(model: RDDLLiftedModel):
 
     # get the information for each state from the domain
     states, statesranges, nextstates, prevstates = {}, {}, {}, {}
+    assert model.ast is not None
     for pvar in model.ast.domain.pvariables:
         if pvar.is_state_fluent():
             name = pvar.name
@@ -37,7 +38,7 @@ def _extract_states(model: RDDLLiftedModel):
     init_state_info = getattr(model.ast.instance, "init_state", [])
     already_set = {}
     init_state = {}
-    for (name, params), value in init_state_info:
+    for (name, p), value in init_state_info:
         # check whether name is a valid state-fluent
         grounded_states = states.get(name, {})
         if grounded_states is None:
@@ -47,8 +48,7 @@ def _extract_states(model: RDDLLiftedModel):
             )
 
         # extract the grounded name and check that parameters are valid
-        if params is not None:
-            params = RDDLPlanningModel.strip_literals(params)
+        params = RDDLPlanningModel.strip_literals(p) if p is not None else ()
         gname = RDDLPlanningModel.ground_var(name, params)
         if gname not in grounded_states:
             required_types = model.variable_params[name]
@@ -70,12 +70,12 @@ def _extract_states(model: RDDLLiftedModel):
                         f"is initialized in init-state block with undefined "
                         f"object <{value}>."
                     )
-                else:
-                    raise RDDLInvalidObjectError(
-                        f"State-fluent <{name}> of range <{required_type}> "
-                        f"is initialized in init-state block with object "
-                        f"<{value}> of type <{value_type}>."
-                    )
+
+                raise RDDLInvalidObjectError(
+                    f"State-fluent <{name}> of range <{required_type}> "
+                    f"is initialized in init-state block with object "
+                    f"<{value}> of type <{value_type}>."
+                )
 
         # make sure no duplication
         if gname in already_set and already_set[gname] != value:
@@ -83,8 +83,8 @@ def _extract_states(model: RDDLLiftedModel):
                 f"Multiple distinct initial values assigned to state-fluent <{gname}> "
                 f"in the instance."
             )
-        else:
-            already_set[gname] = value
+
+        already_set[gname] = value
 
         init_state[gname] = np.bool_(value) if statesranges[name] == "bool" else value
 
@@ -121,7 +121,7 @@ class RDDLAddInitState(gym.Wrapper[WrapperActType, WrapperObsType, ObsType, ActT
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[WrapperObsType, dict[str, Any]]:
-        obs, info = self.env.reset(seed=seed)
+        obs, info = self.env.reset(seed=seed, options=options)
 
         new_obs = self.init_state | obs
 

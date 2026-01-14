@@ -59,6 +59,12 @@ class RDDLGroundedModel(BaseGroundedModel):
         )
 
     @cached_property
+    def objects(self) -> tuple[str, ...]:
+        object_to_type = self.model.object_to_type
+        objects = [(o,) for o in object_to_type] if object_to_type else []
+        return tuple(sorted(objects))
+
+    @cached_property
     def _non_fluents(self) -> list[tuple[str, Any]]:
         """Non-fluents that are "observed" in the instance file."""
         return (

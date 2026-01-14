@@ -1,14 +1,13 @@
 from functools import cache
-from typing import Any, TypeVar
+from typing import Any
 
 import gymnasium as gym
 from gymnasium import spaces
+from gymnasium.spaces import Dict
 from pyRDDLGym import RDDLEnv
 
 from .rddl_utils import rddl_ground_to_tuple
 
-ObsType = TypeVar("ObsType")
-ActType = TypeVar("ActType")
 WrapperObsType = spaces.Dict
 WrapperActType = spaces.Tuple
 
@@ -19,13 +18,13 @@ def merge_rddl_grounding(grounding: tuple[str, ...]):
     return f"{action_fluent}___{'__'.join(params)}" if params else action_fluent
 
 
-class RDDLToTuple(gym.Wrapper[WrapperActType, WrapperObsType, ObsType, ActType]):
+class RDDLToTuple(gym.Wrapper[WrapperActType, WrapperObsType, Dict, Dict]):
     def __init__(self, env: RDDLEnv) -> None:
         super().__init__(env)
 
     def step(
         self,
-        actions: ActType,
+        actions: Dict,
     ) -> tuple[
         dict[str, bool | None],
         float,
@@ -44,7 +43,7 @@ class RDDLToTuple(gym.Wrapper[WrapperActType, WrapperObsType, ObsType, ActType])
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[WrapperObsType, dict[str, Any]]:
-        obs, info = self.env.reset(seed=seed)
+        obs, info = self.env.reset(seed=seed, options=options)
 
         obs = {rddl_ground_to_tuple(k): v for k, v in obs.items()}
 

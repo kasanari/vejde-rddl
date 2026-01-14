@@ -26,7 +26,7 @@ def convert_enum_key(key: str, value: str) -> str:
 
 
 class RDDLConvertEnums(gym.Wrapper[WrapperActType, WrapperObsType, ObsType, ActType]):
-    def __init__(self, env: RDDLEnv, only_add_on_reset: bool = False) -> None:
+    def __init__(self, env: RDDLEnv) -> None:
         super().__init__(env)
 
         self.rddl_model = RDDLModel(env.unwrapped.model)
@@ -43,8 +43,7 @@ class RDDLConvertEnums(gym.Wrapper[WrapperActType, WrapperObsType, ObsType, ActT
 
         obs = {**obs, **new_data}
 
-        obs = {k: v for k, v in obs.items() if predicate(k) not in self.enum_fluents}
-        return obs
+        return {k: v for k, v in obs.items() if predicate(k) not in self.enum_fluents}
 
     def convert_action(self, action: Grounding) -> tuple[Grounding, int]:
         action_with_enum, *args = action
@@ -80,7 +79,7 @@ class RDDLConvertEnums(gym.Wrapper[WrapperActType, WrapperObsType, ObsType, ActT
     def reset(
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[WrapperObsType, dict[str, Any]]:
-        obs, info = self.env.reset(seed=seed)
+        obs, info = self.env.reset(seed=seed, options=options)
 
         obs = self.transform_obs(obs)
 
