@@ -2,7 +2,7 @@
 
 This an RDDL extension for [Vejde](https://github.com/kasanari/vejde).
 
-It wraps [pyRDDLGym](https://github.com/pyrddlgym-project/pyRDDLGym), and provides an child class of BaseModel which automatically pulls the required fields from the simulator.
+It wraps [pyRDDLGym](https://github.com/pyrddlgym-project/pyRDDLGym), and provides an child class of BaseModel that pulls the required fields from the pyRDDLGym simulator.
 This lets you experiment with many of the problems in the [library of RDDL problems](https://github.com/pyrddlgym-project/rddlrepository). 
 
 # How do I run it?
