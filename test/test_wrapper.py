@@ -2,11 +2,13 @@ from collections.abc import Callable
 from typing import Any
 
 import gymnasium as gym
+from gymnasium.spaces import Space
 import numpy as np
 import pytest
 from gymnasium.utils.env_checker import check_env
 from regawa.model.null import NullConst
 from regawa.data.space import FactorGraphSpace, HeteroStateSpace
+from regawa.data import ObsData
 from vejde_rddl import register_env, register_pomdp_env
 
 
@@ -104,7 +106,7 @@ def test_render(env_register):
     return sum_reward
 
 
-def check_obs_in_space(key: str, obs: dict[str, Any], obs_space: gym.spaces.Space):
+def check_obs_in_space(key: str, obs: ObsData, obs_space: Space[ObsData]):
     if isinstance(obs_space, gym.spaces.Dict):
         for k, v in obs.items():
             check_obs_in_space(f"{key}.{k}", v, obs_space.spaces[k])
@@ -162,7 +164,7 @@ def test_pomdp_wrapper():
         # action = [1, 3]
         # print(info["rddl_state"])
 
-        action = policy(info["rddl_state"])
+        action = policy(info["rddl_state"], lambda x: info["idx_to_object"].index(x))
         # print(info["state"].edge_attributes)
         # print(action)
         obs, reward, terminated, truncated, info = env.step(action)
