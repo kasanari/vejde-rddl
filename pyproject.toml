@@ -45,6 +45,8 @@ find-links = [
   "https://data.pyg.org/whl/torch-2.8.0+cpu.html",
 ]
 
+override-dependencies = ["numpy < 2.4"] # pyrddlgym requires numpy<2.4.0
+
 [tool.ruff.lint]
 select = [
     # pycodestyle
