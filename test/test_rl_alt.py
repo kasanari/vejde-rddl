@@ -15,7 +15,7 @@ def main():
         agent_class="GraphAgent",
         env_id=env_id,
         total_timesteps=4000,
-        num_steps=128,
+        rollout_length=128,
         num_minibatches=2,
         learning_rate=0.001,
         # domain="rddl/conditional_bandit/domain.rddl",

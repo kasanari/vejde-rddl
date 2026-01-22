@@ -131,7 +131,6 @@ def test_imitation_rnn(
     logger.addHandler(logging.StreamHandler())
 
     th.manual_seed(0)
-    np.random.seed(0)
     random.seed(0)
 
     env_id = register_env(

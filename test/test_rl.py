@@ -14,7 +14,7 @@ def main():
         agent_class="GraphAgent",
         env_id=env_id,
         total_timesteps=2000,
-        num_steps=20,
+        rollout_length=20,
         weight_decay=0.0,
         debug=True,
         agent_config=GNNParams(
