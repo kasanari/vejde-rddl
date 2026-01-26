@@ -1,7 +1,7 @@
 import pytest
 from regawa import BaseModel
-from regawa.model import utils
 from regawa.model.null import NullConst
+from regawa.model.model_func import fn_fluents_of_arity
 from vejde_rddl import RDDLModel
 from vejde_rddl.rddl_grounded_model import RDDLGroundedModel
 
@@ -59,7 +59,7 @@ def test_fluent_params(model: BaseModel):
     assert f_p("light") == ("machine",)
     assert f_p("PAYOUT") == ("machine",)
     assert f_p("CONNECTED") == ("button", "machine")
-    assert f_p(NullConst.action) == ()
+    assert f_p(NullConst.action) == (NullConst.type,)
 
 
 def test_fluent_param(model: BaseModel):
@@ -73,13 +73,9 @@ def test_fluent_param(model: BaseModel):
 
 
 def test_fluents_of_arity(model: BaseModel):
-    fluents_of_arity = utils.fn_fluents_of_arity(model)
+    fluents_of_arity = fn_fluents_of_arity(model)
 
-    assert fluents_of_arity(1) == (
-        "PAYOUT",
-        "light",
-        "press",
-    )
+    assert fluents_of_arity(1) == (NullConst.action, "PAYOUT", "light", "press")
 
     assert fluents_of_arity(2) == ("CONNECTED",)
 
@@ -102,7 +98,7 @@ def test_action_groundings(ground_model: RDDLGroundedModel):
     """groundings of action fluents/variables.
     one the form: relation___object1__object2__...__objectN
     """
-    assert len(ground_model.action_groundings) == 3
+    assert len(ground_model.action_groundings) == 2
 
 
 def test_num_relations(model: BaseModel):

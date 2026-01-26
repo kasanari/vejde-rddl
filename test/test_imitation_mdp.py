@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 import torch as th
-from regawa import GNNParams, agent_from_env
+from regawa import GNNParams, GraphAgent, agent_from_env
 from regawa.data import heterostatedata_to_tensors
 from regawa.policy import ActionMode
 from regawa.rl.util import evaluate, rollout, save_eval_data, update, update_vf_agent
@@ -97,8 +97,8 @@ def test_imitation(
         action_mode=action_mode,
     )
 
-    agent = agent_from_env("GraphAgent", env, params)
-    vf_agent = agent_from_env("GraphAgent", env, params)
+    agent = agent_from_env(GraphAgent, env, params)
+    vf_agent = agent_from_env(GraphAgent, env, params)
 
     # agent, config = agent.load_agent("conditional_bandit.pth")
 
