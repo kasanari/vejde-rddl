@@ -1,13 +1,15 @@
 import json
 import pathlib
 import random
+import sys
+import uuid
 from collections import deque
 from collections.abc import Callable, Mapping
+from dataclasses import asdict
 from pathlib import Path
-from typing import Any, SupportsFloat
+from typing import Any
 
 import gymnasium as gym
-import matplotlib.pyplot as plt
 import numpy as np
 import torch as th
 from regawa import (
@@ -18,27 +20,25 @@ from regawa import (
     GroundingRange,
     agent_from_model,
 )
-from regawa.data import heterostatedata_from_obslist
+from regawa.data.data import heterostatedata_from_obslist
 from regawa.data.torch import heterostatedata_to_tensors
 from regawa.model import BaseModel
-from regawa.model.null import NullConst
-from regawa.policy.load import load_agent
 from regawa.policy.recurrent_gnn_agent import RecurrentGraphAgent
-from regawa.rl.util import calc_loss, evaluate, save_eval_data, update
+from regawa.rl.util import calc_loss, update
 
 # from regawa.wrappers import fn_objects_with_type
-from regawa.data import (
+from regawa.wrappers import (
     create_render_graph,
     fn_groundobs_to_heterograph,
     fn_idx_obs,
-    object_list,
-)
-from regawa.model import (
     from_dict_action,
+    object_list,
     remove_false,
 )
 from regawa.wrappers.grounding_utils import fn_objects_with_type
 from tqdm import tqdm
+
+from rddlgraphwrapper.src.regawa.model.null import NullConst
 from vejde_rddl import register_env, register_pomdp_env
 from vejde_rddl.rddl_utils import rddl_ground_to_tuple
 
@@ -123,13 +123,14 @@ def convert_state_to_tuples(
     return {converter_func(k): v for k, v in d.items()}
 
 
-NULL_ACTION = (NullConst.action, NullConst.id)
-
-
 def convert_actions_to_tuples(
     d: RecordingAction, converter_func: Callable[[str], Grounding]
 ) -> dict[Grounding, bool]:
-    return convert_state_to_tuples(d, converter_func) if d else {NULL_ACTION: True}
+    return (
+        convert_state_to_tuples(d, converter_func)
+        if d
+        else {(NullConst.id, NullConst.type): True}
+    )
 
 
 def ensure_tuple(x: tuple[str, ...]) -> tuple[str, ...]:
@@ -147,8 +148,10 @@ def fn_to_indexed_action(model: BaseModel):
         action: GroundAction,
         obj_to_idx: Callable[[str], int],
     ) -> IndexedAction:
-        x = list(action.keys())[0] if action else NULL_ACTION
-        a = from_dict_action(x, lambda x: model.action_fluents.index(x), obj_to_idx)
+        action = list(action.keys())[0] if action else (NullConst.id, NullConst.type)
+        a = from_dict_action(
+            action, lambda x: model.action_fluents.index(x), obj_to_idx
+        )
         return a
 
     return to_indexed_action
@@ -182,7 +185,7 @@ def fn_to_obsdata(model: BaseModel):
     ):
         g = create_graphs(obs)
         o = g_to_obsdata(g)
-        a = to_indexed_action(action, lambda x: g.boolean.factors.names.index(x))
+        a = to_indexed_action(action, lambda x: g.boolean.factors.index(x))
 
         # Rendering
         # dot = to_graphviz(create_render_graph(g.boolean, g.numeric))
@@ -198,10 +201,12 @@ def fn_to_obsdata(model: BaseModel):
     return to_obsdata
 
 
-def get_rnn_agent(model: BaseModel, device: str = "cpu"):
+def get_rnn_agent(
+    model: BaseModel, layers: int, embedding_dim: int, device: str = "cpu"
+):
     params = GNNParams(
-        layers=4,
-        embedding_dim=16,
+        layers=layers,
+        embedding_dim=embedding_dim,
         activation=th.nn.Mish(),
         aggregation="sum",
         action_mode=ActionMode.NODE_THEN_ACTION,
@@ -215,11 +220,11 @@ def get_rnn_agent(model: BaseModel, device: str = "cpu"):
     )
 
 
-def get_agent(model: BaseModel, device: str = "cpu"):
+def get_agent(model: BaseModel, layers: int, embedding_dim: int, device: str = "cpu"):
     params = GNNParams(
-        layers=4,
-        embedding_dim=16,
-        activation=th.nn.Mish(),
+        layers=layers,
+        embedding_dim=embedding_dim,
+        activation=th.nn.Tanh(),
         aggregation="max",
         action_mode=ActionMode.NODE_THEN_ACTION,
     )
@@ -233,86 +238,52 @@ def get_agent(model: BaseModel, device: str = "cpu"):
 
 
 # def get_rddl_data(data: Recording, model: BaseModel, grounded_model: BaseGroundedModel):
+#     create_graphs = create_graphs_func(model)
 #     data = [convert_episode(d) for d in data]
 #     rollout = [to_obsdata(s, model, grounded_model) for e in data for s in e]
 #     return zip(*rollout)
 
 
-def test_expert(
-    env: gym.Env,
-    expert_data: Recording,
-    seed: int,
-    model: BaseModel,
-    strict: bool = True,
-):
-    _, info = env.reset(seed=seed)
-    done = False
-
-    rewards: deque[SupportsFloat] = deque()
-
-    step = 0
-    while not done:
-        rddl_state = info["rddl_state"]
-        e_state = expert_data[0][step]["state"]
-        for k, v in e_state.items():
-            tuple_k = ground_to_tuple(k)
-            assert tuple_k in rddl_state, (
-                "Grounded value %s from recording not in state returned by the simulator at step %d"
-                % (k, step)
-            )
-            obs_equal = (
-                (
-                    rddl_state[tuple_k][-1] == v
-                    if isinstance(rddl_state[tuple_k], list)
-                    else rddl_state[tuple_k] == v
-                )
-                if strict
-                else True
-            )
-            assert obs_equal, (
-                "Expected value %s for grounded value %s but %s was returned by the simulator"
-                % (v, k, rddl_state[tuple_k])
-            )
-
-        action = expert_data[0][step]["actions"]
-        action = {ground_to_tuple(list(action.keys())[0]): True} if action else {}
-        objs = object_list(rddl_state.keys(), model.fluent_param)
-        objs = [o.name for o in objs]
-
-        a = to_indexed_action(action, lambda x: objs.index(x), model)
-
-        _, reward, terminated, truncated, info = env.step(a)  # type: ignore
-
-        done = terminated or truncated
-        rewards.append(reward)
-        step += 1
-
-    return rewards
-
-
-def train_mimic(domain: str, data_path: str):
-    datafile = Path(f"{data_path}/{domain}/combined_data.json").expanduser()
-    print(f"Loading data from {datafile}")
-    instance = "1"
-    use_rnn = False
+def train_mimic(domain: str, data_path: str, batch_id: str):
+    datafile = Path(data_path).expanduser()
     seed = 1
-    device = "cuda:0" if th.cuda.is_available() else "cpu"
-    num_epochs = 100
-    batch_size = 20148
+    instance = "1"
     shuffle_batch = True
-    learning_rate = 1e-4
-    wd = 1e-4
-
+    device = "cuda:0" if th.cuda.is_available() else "cpu"
+    use_rnn = False
     env_id = (
         register_pomdp_env(domain=domain, instance=instance, remove_false=True)
         if use_rnn
         else register_env(domain=domain, instance=instance, remove_false=True)
     )
 
+    run_id = str(uuid.uuid4())
+
+    learning_rate = 1e-3
+    wd = 0.0
+    num_epochs = 5000
+    embedding_dim = 16
+    layers = 4
+    batch_size = 128
+
+    config = {
+        "learning_rate": learning_rate,
+        "weight_decay": wd,
+        "num_epochs": num_epochs,
+        "seed": seed,
+        "data_path": data_path,
+        "embedding_dim": embedding_dim,
+        "shuffle_batch": shuffle_batch,
+        "layers": layers,
+        "batch_size": batch_size,
+    }
+
     output_dir = pathlib.Path("imitation_output")
     output_dir.mkdir(exist_ok=True)
-    domain_dir = output_dir / domain
-    domain_dir.mkdir(exist_ok=True)
+    batch_dir = output_dir / batch_id
+    batch_dir.mkdir(exist_ok=True)
+    run_dir = batch_dir / run_id
+    run_dir.mkdir()
 
     env: gym.Env = gym.make(env_id)
     model: BaseModel = env.unwrapped.model
@@ -322,12 +293,11 @@ def train_mimic(domain: str, data_path: str):
     th.manual_seed(seed)
     random.seed(seed)
 
-    agent = get_rnn_agent(model) if use_rnn else get_agent(model, device)
-
-    agent, _ = load_agent(
-        GraphAgent, "imitation_output/Navigation_MDP_ippc2011/model.pth"
+    agent = (
+        get_agent(model, layers, embedding_dim, device)
+        if not use_rnn
+        else get_rnn_agent(model, layers, embedding_dim, device)
     )
-
     optimizer = th.optim.AdamW(
         agent.parameters(), lr=learning_rate, amsgrad=True, weight_decay=wd
     )
@@ -335,20 +305,10 @@ def train_mimic(domain: str, data_path: str):
     with open(datafile) as f:
         expert_data = json.load(f)
 
-    data = [
-        evaluate(env, agent, i, deterministic=True, device=device) for i in range(10)
-    ]
-    rewards, *_ = zip(*data, strict=False)
-
-    print(f"Learner average return: {np.mean([sum(r) for r in rewards])}")
-
     expert_actions = [x["actions"] for x in expert_data]
     expert_obs = [x["state"] for x in expert_data]
 
     def to_tuple(x: str) -> tuple[str, ...]:
-        if x == "None__None":
-            x = f"{NullConst.action}__{NullConst.id}"
-
         return tuple(x.split("__"))
 
     def wrapper_func(x: RecordingObs) -> Mapping[Grounding, GroundingRange]:
@@ -388,6 +348,11 @@ def train_mimic(domain: str, data_path: str):
             indexed_expert_action = indexed_expert_action[perm]
             expert_obs = [expert_obs[i] for i in perm]
 
+        if num_epochs > 2000:
+            # set the learning rate to 1e-4 after 2000 steps
+            for param_group in optimizer.param_groups:
+                param_group["lr"] = 1e-4
+
         for i in range(0, len(indexed_expert_obs), batch_size):
             obs_minibatch = indexed_expert_obs[i : i + batch_size]
             action_minibatch = indexed_expert_action[i : i + batch_size]
@@ -398,54 +363,49 @@ def train_mimic(domain: str, data_path: str):
             loss, grad_norm, _ = update(
                 agent, optimizer, action_minibatch, d, max_grad_norm=0.5
             )
-            avg_loss = avg_loss + (loss - avg_loss) / 2
-            avg_grad_norm = avg_grad_norm + (grad_norm - avg_grad_norm) / 2
-            grad_norms.append(grad_norm)
-            losses.append(loss)
+        avg_loss = avg_loss + (loss - avg_loss) / 2
+        avg_grad_norm = avg_grad_norm + (grad_norm - avg_grad_norm) / 2
+        grad_norms.append(grad_norm)
+        losses.append(loss)
         pbar.set_description(f"Loss: {avg_loss:.3f}, Grad Norm: {avg_loss:.3f}")
         pbar.update(1)
 
     pbar.close()
 
-    data = [
-        evaluate(env, agent, i, deterministic=True, device=device) for i in range(10)
-    ]
-    rewards, *_ = zip(*data, strict=False)
-    save_eval_data(data, domain_dir / "eval_data.json")
-    print(f"Saved eval data to {domain_dir / 'eval_data.json'}")
+    agent_path = str(run_dir / f"model_{run_id}.pth")
+    config_path = str(run_dir / f"config_{run_id}.json")
+    agent.save_agent(agent_path)
+    with open(config_path, "w") as f:
+        json.dump(config, f)
 
-    print(f"Learner average return: {np.mean([sum(r) for r in rewards])}")
+    instances = range(1, 11)
+    instance_returns = []
 
-    fig, axs = plt.subplots(2)
-    axs[0].plot(list(losses))
-    axs[1].plot(list(grad_norms))
-    axs[0].set_title("Loss")
-    axs[1].set_title("Grad Norm")
-    fig.savefig(domain_dir / "loss_grad.png")
+    for instance in tqdm(instances, total=10):
+        _, h = evaluate_instance(
+            env_id, domain, instance, agent, True, 100, verbose=False
+        )
+        instance_returns.append(list(h))
 
-    agent.save_agent(str(domain_dir / "model.pth"))
-    print(f"Saved model to {domain_dir / 'model.pth'}")
-
-    sorted_losses = save_sorted_losses(
-        model, agent, expert_actions, indexed_expert_obs, expert_obs, device=device
+    stats = EvalEntry(
+        batch_id, run_id=run_id, domain=domain, instance_returns=instance_returns
     )
-    with open(domain_dir / "sorted_loss.json", "w") as f:
-        json.dump(sorted_losses, f, indent=2)
+    return stats, agent_path, config_path
 
-    print(f"Dumped sorted losses to {domain_dir / 'sorted_loss.json'}")
 
-    pass
+def main():
+    data_path = sys.argv[1]
+    domain = sys.argv[2]
+    batch_id = sys.argv[3]
+    instances = json.loads(sys.argv[4])
+    stats, apath, config_path = train_mimic(domain, data_path, batch_id)
+    to_print = asdict(stats)
+    to_print["agent_path"] = apath
+    to_print["config_path"] = config_path
+    to_print["train_instances"] = instances
+
+    print(json.dumps(to_print))
 
 
 if __name__ == "__main__":
-    # domains = "Navigation_MDP_ippc2011 TriangleTireworld_MDP_ippc2014 Elevators_MDP_ippc2014 SysAdmin_MDP_ippc2011 Traffic_MDP_ippc2014 SkillTeaching_MDP_ippc2014 AcademicAdvising_MDP_ippc2014 CrossingTraffic_MDP_ippc2014 Tamarisk_MDP_ippc2014"
-    # domains = domains.split()
-    domains = ["Navigation_MDP_ippc2011"]
-
-    # data_path = sys.argv[1]
-    # domains = ["SysAdmin_MDP_ippc2011"]
-    # domains = ["Tamarisk_MDP_ippc2014"]
-    for domain in domains:
-        print(f"Testing {domain}")
-        data_path = Path("/storage/GitHub/pyRDDLGym-rl/prost/").expanduser()
-        train_mimic(domain, data_path)
+    main()

@@ -10,17 +10,17 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch as th
 from regawa import GNNParams, Grounding
+from regawa.data.render import create_render_graph, to_graphviz
+from regawa.model import from_dict_action, object_list
 from regawa.model.base_grounded_model import BaseGroundedModel
 from regawa.model.base_model import BaseModel
 from regawa.policy import AgentConfig, GraphAgent, RecurrentGraphAgent
 from regawa.rl.util import calc_loss, evaluate, update
-from regawa.data.render import create_render_graph, to_graphviz
-from regawa.model import from_dict_action, object_list
 from tqdm import tqdm
-from vejde_rddl import register_env, register_pomdp_env
-from vejde_rddl.rddl_utils import rddl_ground_to_tuple
 
 from rddlgraphwrapper.src.regawa.model.null import NullConst
+from vejde_rddl import register_env, register_pomdp_env
+from vejde_rddl.rddl_utils import rddl_ground_to_tuple
 
 RecordingObs = dict[str, Any]
 RecordingAction = dict[str, int]
