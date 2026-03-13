@@ -1,7 +1,7 @@
 import pytest
 from regawa import BaseModel
-from regawa.model.null import NullConst
 from regawa.model.model_func import fn_fluents_of_arity
+from regawa.model.null import NullConst
 from vejde_rddl import RDDLModel
 from vejde_rddl.rddl_grounded_model import RDDLGroundedModel
 

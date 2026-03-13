@@ -2,13 +2,13 @@ from collections.abc import Callable
 from typing import Any
 
 import gymnasium as gym
-from gymnasium.spaces import Space
 import numpy as np
 import pytest
+from gymnasium.spaces import Space
 from gymnasium.utils.env_checker import check_env
-from regawa.model.null import NullConst
-from regawa.data.space import FactorGraphSpace, HeteroStateSpace
 from regawa.data import ObsData
+from regawa.data.space import FactorGraphSpace, HeteroStateSpace
+from regawa.model.null import NullConst
 from vejde_rddl import register_env, register_pomdp_env
 
 
