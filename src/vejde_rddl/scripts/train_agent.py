@@ -42,7 +42,6 @@ def main(
                 action_mode=ActionMode.ACTION_THEN_NODE,
             ),
         )
-    model = RDDLModel.from_domain(domain)
 
     stats, agent = train(args)
     agent.save_agent(agent_save_path)
